@@ -241,11 +241,10 @@ void MainDialog::newStereoImageArrived()
     } else if (ui->tabWidget->currentIndex()==3) {
       ui->rightFullImageView->setImage(simg.I2,simg.width,simg.height);
     }
+}
 
-
-    id MainDialog::newHomographyArrived()
-
-
+void MainDialog::newHomographyArrived()
+{
     // get stereo image deepcopy
     StereoImage::simage simg(*vo_thread->getStereoImage());
     Matrix H_total = vo_thread->getHomographyTotal();
@@ -269,10 +268,10 @@ void MainDialog::newStereoImageArrived()
     } else {
       //ui->modelView->addCamera(H_total,0.05,false);
     }
+}
 
-
-    id MainDialog::newDisparityMapArrived() {
-
+void MainDialog::newDisparityMapArrived()
+{
     // get stereo image deepcopy
     StereoImage::simage simg(*stereo_thread->getStereoImage());
 
