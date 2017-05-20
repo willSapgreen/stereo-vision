@@ -20,67 +20,105 @@ View3D::View3D(QWidget *parent) :
   show_white_flag  = 0;
 }
 
+//==============================================================================//
+
 View3D::~View3D() {
   clearAll();
 }
 
-void View3D::mousePressEvent(QMouseEvent *event) {
-  last_pos = event->pos();
+//==============================================================================//
+
+void View3D::mousePressEvent(QMouseEvent *event)
+{
+    last_pos = event->pos();
 }
 
-void View3D::mouseMoveEvent(QMouseEvent *event) {
+//==============================================================================//
 
-  // compute deltas
-  float dx = -event->x()+last_pos.x();
-  float dy = +event->y()-last_pos.y();
+void View3D::mouseMoveEvent(QMouseEvent *event)
+{
+    // compute deltas
+    float dx = -event->x()+last_pos.x();
+    float dy = +event->y()-last_pos.y();
 
-  // both buttons => zoom
-  if (event->buttons() & Qt::MidButton) {
-    if (dy>0) pose_curr.zoom *= (1+0.01*fabs(dy));
-    else      pose_curr.zoom /= (1+0.01*fabs(dy));
+    // both buttons => zoom
+    if (event->buttons() & Qt::MidButton)
+    {
+        if (dy>0)
+        {
+            pose_curr.zoom *= (1+0.01*fabs(dy));
+        }
+        else
+        {
+            pose_curr.zoom /= (1+0.01*fabs(dy));
+        }
+        updateGL();
+    }
+    // left button => rotation
+    else if (event->buttons() & Qt::LeftButton)
+    {
+        pose_curr.rotx += dy;
+        if (pose_curr.rotx<90)
+        {
+            pose_curr.rotx = 90;
+        }
+        if (pose_curr.rotx>270)
+        {
+            pose_curr.rotx = 270;
+        }
+        pose_curr.roty += dx;
+
+        if (pose_curr.roty<-180)
+        {
+            pose_curr.roty = -180;
+        }
+        if (pose_curr.roty>+180)
+        {
+            pose_curr.roty = +180;
+        }
+    }
+    // right button => translation
+    else if (event->buttons() & Qt::RightButton)
+    {
+        float rotx2 = pose_curr.rotx;
+        if (rotx2<170) rotx2 = 90;
+        if (rotx2>190) rotx2 = 270;
+        float rx = rotx2*M_PI/180.0;
+        float ry = pose_curr.roty*M_PI/180.0;
+
+        Matrix R = Matrix::rotMatY(-ry)*Matrix::rotMatX(-rx);
+
+        Matrix v(3,1);
+        v.val[0][0] = dx;
+        v.val[1][0] = dy;
+
+        v = R*v;
+        pose_curr.tx += 0.0025*pose_curr.zoom*v.val[0][0];
+        pose_curr.ty += 0.0025*pose_curr.zoom*v.val[1][0];
+        pose_curr.tz += 0.0025*pose_curr.zoom*v.val[2][0];
+    }
+
+    last_pos = event->pos();
+
     updateGL();
-
-  // left button => rotation
-  } else if (event->buttons() & Qt::LeftButton) {
-
-    pose_curr.rotx += dy;
-    if (pose_curr.rotx<90)  pose_curr.rotx = 90;
-    if (pose_curr.rotx>270) pose_curr.rotx = 270;
-    pose_curr.roty += dx;
-    if (pose_curr.roty<-180) pose_curr.roty = -180;
-    if (pose_curr.roty>+180) pose_curr.roty = +180;
-
-  // right button => translation
-  } else if (event->buttons() & Qt::RightButton) {
-
-    float rotx2 = pose_curr.rotx;
-    if (rotx2<170) rotx2 = 90;
-    if (rotx2>190) rotx2 = 270;
-    float rx = rotx2*M_PI/180.0;
-    float ry = pose_curr.roty*M_PI/180.0;
-
-    Matrix R = Matrix::rotMatY(-ry)*Matrix::rotMatX(-rx);
-
-    Matrix v(3,1);
-    v.val[0][0] = dx;
-    v.val[1][0] = dy;
-
-    v = R*v;
-    pose_curr.tx += 0.0025*pose_curr.zoom*v.val[0][0];
-    pose_curr.ty += 0.0025*pose_curr.zoom*v.val[1][0];
-    pose_curr.tz += 0.0025*pose_curr.zoom*v.val[2][0];
-  }
-
-  last_pos = event->pos();
-
-  updateGL();
 }
 
-void View3D::wheelEvent(QWheelEvent *event) {
-  if (event->delta()>0) pose_curr.zoom *= 1.1;
-  else                  pose_curr.zoom /= 1.1;
-  updateGL();
+//==============================================================================//
+
+void View3D::wheelEvent(QWheelEvent *event)
+{
+    if (event->delta()>0)
+    {
+        pose_curr.zoom *= 1.1;
+    }
+    else
+    {
+        pose_curr.zoom /= 1.1;
+    }
+    updateGL();
 }
+
+//==============================================================================//
 
 void View3D::addCamera (Matrix H_total,float s,bool keyframe) {
 
@@ -318,60 +356,71 @@ void View3D::recordHuman() {
   playPoses(1);
 }
 
-void View3D::playPoses(bool record) {
-  string dir;
-  if (record)
-    dir = createNewRecordDirectory();
-  float step_size = 0.02;
-  int k1=0;
-  int k2=0;
-  for (int i=0; i<(int)poses.size()-1; i++) {
-    pose pose1 = poses[i];
-    pose pose2 = poses[i+1];
-    for (float pos=0; pos<=1; pos+=step_size) {
-      float pos2 = (1+sin(-M_PI/2+pos*M_PI))/2;
-      pose_curr.zoom = pose1.zoom+(pose2.zoom-pose1.zoom)*pos2;
-      pose_curr.rotx = pose1.rotx+(pose2.rotx-pose1.rotx)*pos2;
-      pose_curr.roty = pose1.roty+(pose2.roty-pose1.roty)*pos2;
-      pose_curr.tx   = pose1.tx  +(pose2.tx  -pose1.tx  )*pos2;
-      pose_curr.ty   = pose1.ty  +(pose2.ty  -pose1.ty  )*pos2;
-      pose_curr.tz   = pose1.tz  +(pose2.tz  -pose1.tz  )*pos2;
-      updateGL();
-      if (record) {
-        QImage img_320_480 = this->grabFrameBuffer();
-        char filename[1024];
-        sprintf(filename,"%simg_320_480_%06d.png",dir.c_str(),k1++);
-        cout << "Storing " << filename << endl;
-        img_320_480.save(QString(filename));
-        if (k1%3==0) {
-          QImage img_160_240 = img_320_480.scaled(160,240,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
-          sprintf(filename,"%simg_160_240_%06d.png",dir.c_str(),k2++);
-          cout << "Storing " << filename << endl;
-          img_160_240.save(QString(filename));
-        }
-      }
+void View3D::playPoses(bool record)
+{
+    string dir;
+    if(record)
+    {
+        dir = createNewRecordDirectory();
     }
-  }
-  char command[1024];
-  sprintf(command,"gnome-terminal -e \"./upload.sh %s\"",dir.c_str());
-  system(command);
+    float step_size = 0.02;
+    int k1=0;
+    int k2=0;
+    for (int i=0; i<(int)poses.size()-1; i++)
+    {
+        pose pose1 = poses[i];
+        pose pose2 = poses[i+1];
+        for (float pos=0; pos<=1; pos+=step_size)
+        {
+            float pos2 = (1+sin(-M_PI/2+pos*M_PI))/2;
+            pose_curr.zoom = pose1.zoom+(pose2.zoom-pose1.zoom)*pos2;
+            pose_curr.rotx = pose1.rotx+(pose2.rotx-pose1.rotx)*pos2;
+            pose_curr.roty = pose1.roty+(pose2.roty-pose1.roty)*pos2;
+            pose_curr.tx   = pose1.tx  +(pose2.tx  -pose1.tx  )*pos2;
+            pose_curr.ty   = pose1.ty  +(pose2.ty  -pose1.ty  )*pos2;
+            pose_curr.tz   = pose1.tz  +(pose2.tz  -pose1.tz  )*pos2;
+            updateGL();
+            if (record)
+            {
+                QImage img_320_480 = this->grabFrameBuffer();
+                char filename[1024];
+                sprintf(filename,"%simg_320_480_%06d.png",dir.c_str(),k1++);
+                cout << "Storing " << filename << endl;
+                img_320_480.save(QString(filename));
+                if (k1%3==0)
+                {
+                    QImage img_160_240 = img_320_480.scaled(160,240,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
+                    sprintf(filename,"%simg_160_240_%06d.png",dir.c_str(),k2++);
+                    cout << "Storing " << filename << endl;
+                    img_160_240.save(QString(filename));
+                }
+            }
+        }
+    }
+    // Comment out because there is no upload.sh
+    //char command[1024];
+    //sprintf(command,"gnome-terminal -e \"./upload.sh %s\"",dir.c_str());
+    //system(command);
 }
 
-string View3D::createNewRecordDirectory() {
-  char buffer[1024];
-  for (int32_t i=0; i<9999; i++) {
-    sprintf(buffer,"/home/geiger/4_Projects/stereomapper/record_%04d/img_320_480_000000.png",i);
-    FILE *file = fopen (buffer,"r");
-    if (file!=NULL) {
-      fclose (file);
-      continue;
+string View3D::createNewRecordDirectory()
+{
+    char buffer[1024];
+    for (int32_t i=0; i<9999; i++)
+    {
+        sprintf(buffer,"/home/geiger/4_Projects/stereomapper/record_%04d/img_320_480_000000.png",i);
+        FILE *file = fopen (buffer,"r");
+        if (file!=NULL)
+        {
+            fclose (file);
+            continue;
+        }
+        sprintf(buffer,"/home/geiger/4_Projects/stereomapper/record_%04d/",i);
+        break;
     }
-    sprintf(buffer,"/home/geiger/4_Projects/stereomapper/record_%04d/",i);
-    break;
-  }
-  cout << "Creating record directory: " << buffer << endl;
-  char cmd[1024];
-  sprintf(cmd,"mkdir %s",buffer);
-  system(cmd);
-  return buffer;
+    cout << "Creating record directory: " << buffer << endl;
+    char cmd[1024];
+    sprintf(cmd,"mkdir %s",buffer);
+    system(cmd);
+    return buffer;
 }

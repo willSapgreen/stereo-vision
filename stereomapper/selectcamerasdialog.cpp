@@ -14,28 +14,39 @@ SelectCamerasDialog::SelectCamerasDialog(FrameCaptureThread *cam_left,FrameCaptu
     shutter(shutter),
     calib(calib)
 {
-  ui->setupUi(this);
+    ui->setupUi(this);
 
-  // query left camera
-  vector<string> devices_left  = cam_left->queryDevices();
-  for (unsigned int i=0; i<devices_left.size(); i++)
-    ui->leftCameraComboBox->addItem(QString::fromStdString(devices_left[i]));
+    // query left camera
+    vector<string> devices_left  = cam_left->queryDevices();
+    for (unsigned int i=0; i<devices_left.size(); i++)
+    {
+        ui->leftCameraComboBox->addItem(QString::fromStdString(devices_left[i]));
+    }
 
-  // query right camera
-  vector<string> devices_right = cam_right->queryDevices();
-  for (unsigned int i=0; i<devices_right.size(); i++)
-    ui->rightCameraComboBox->addItem(QString::fromStdString(devices_right[i]));
+    // query right camera
+    vector<string> devices_right = cam_right->queryDevices();
+    for (unsigned int i=0; i<devices_right.size(); i++)
+    {
+        ui->rightCameraComboBox->addItem(QString::fromStdString(devices_right[i]));
+    }
 
-  if (devices_left.size()==2 && devices_right.size()==2) {
-    if (!devices_left[0].compare("b09d01009e410e") || !devices_left[0].compare("b09d01007fb88f"))
-      ui->rightCameraComboBox->setCurrentIndex(min(1,(int)devices_right.size()-1));
-    else
-      ui->leftCameraComboBox->setCurrentIndex(min(1,(int)devices_left.size()-1));
-  }
+    if (devices_left.size()==2 && devices_right.size()==2)
+    {
+        if (!devices_left[0].compare("b09d01009e410e") || !devices_left[0].compare("b09d01007fb88f"))
+        {
+            ui->rightCameraComboBox->setCurrentIndex(min(1,(int)devices_right.size()-1));
+        }
+        else
+        {
+            ui->leftCameraComboBox->setCurrentIndex(min(1,(int)devices_left.size()-1));
+        }
+    }
 
-  settings = new QSettings("KIT", "stereomapper");
-  ui->calibFileNameEdit->setText(settings->value("calib_file_name","/home/geiger/calib.txt").toString());
+    settings = new QSettings("KIT", "stereomapper");
+    ui->calibFileNameEdit->setText(settings->value("calib_file_name","/home/geiger/calib.txt").toString());
 }
+
+//==============================================================================//
 
 SelectCamerasDialog::~SelectCamerasDialog()
 {

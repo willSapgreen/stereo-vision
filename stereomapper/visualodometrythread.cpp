@@ -6,8 +6,22 @@ VisualOdometryThread::VisualOdometryThread(CalibIO *calib,QObject *parent) :
     QThread(parent),
     calib(calib) {
 
-  matcher = new Matcher(3,50,50,300,2,5,5,1,1,2);
-  vo      = new VisualOdometry();
+  //Matcher::parameters matcherParam( 3,50,50,300,2,5,5,1,1,2 );
+  //Matcher::parameters matcherParam;
+  //matcherParam.match_radius = 200;
+  //matcherParam.refinement = 2;
+  //matcher = new Matcher( matcherParam );
+
+  // set most important visual odometry parameters
+  // for a full parameter list, look at: viso_stereo.h
+  VisualOdometryStereo::parameters voParam;
+  // calibration parameters for sequence 2010_03_09_drive_0019
+  voParam.calib.f  = 645.24; // focal length in pixels
+  voParam.calib.cu = 635.96; // principal point (u-coordinate) in pixels
+  voParam.calib.cv = 194.13; // principal point (v-coordinate) in pixels
+  voParam.base     = 0.5707; // baseline in meters
+  vo      = new VisualOdometryStereo( voParam );
+
   simg              = 0;
   time_prev.tv_sec  = 0;
   time_prev.tv_usec = 0;
@@ -19,7 +33,7 @@ VisualOdometryThread::VisualOdometryThread(CalibIO *calib,QObject *parent) :
 }
 
 VisualOdometryThread::~VisualOdometryThread() {
-  delete matcher;
+  //delete matcher;
   delete vo;
   if (simg!=0) {
     delete simg;
@@ -58,43 +72,52 @@ void VisualOdometryThread::run() {
 
     Timer t;
     t.start("push");
-    matcher->pushBack(simg->I1,simg->I2,simg->width,simg->height,simg->step,false);
+    int32_t dim[3] = {0};
+    dim[0] = simg->width;
+    dim[1] = simg->height;
+    dim[2] = simg->step;
+    //matcher->pushBack( simg->I1,simg->I2,dim,false );
 
     t.start("match");
-    matcher->matchFeatures(2);
-    matcher->bucketFeatures(5,50,50);
+    //matcher->matchFeatures(2);
+    //matcher->bucketFeatures(5,50,50);
 
     // grab matches
-    matches = matcher->getMatches();
+    //matches = matcher->getMatches();
 
     t.start("vo");
 
     // update: H_total = H_total * H^-1
-    if (matches.size()>0) {
+    //if (matches.size()>0)
+    //{
 
       // visual odometry
-      vo->setCalibration(f,cu,cv,b);
-      vo->update(matches,timeDiff(time_curr,time_prev),true,record_raw_odometry);
+      vo->process( simg->I1,simg->I2,dim,false );
       Matrix H_inv = Matrix::eye(4);
-      Matrix H = vo->getTransformation();
+      Matrix H = vo->getMotion();
 
       // get inliers
-      vector<int32_t> inliers_ = vo->getInliers();
+      vector<int32_t> inliers_ = vo->getInlierIndices();
       inliers.clear();
-      for (int32_t i=0; i<(int32_t)matches.size(); i++)
+      for (int32_t i=0; i<(int32_t)vo->getMatches().size(); i++)
+      {
         inliers.push_back(false);
+      }
       for (std::vector<int32_t>::iterator it=inliers_.begin(); it!=inliers_.end(); it++)
-        inliers[*it] = true;
+      {
+          inliers[*it] = true;
+      }
 
       // compute gain
-      gain = matcher->getGain(inliers_);
+      gain = vo->getGain( inliers_ );
 
-      if (H_inv.solve(H)) {
+      if (H_inv.solve(H))
+      {
         H_total = H_total*H_inv;
         picked = false;
         emit newHomographyArrived();
         while (!picked) usleep(1000);
       }
-    }
+    //}
   }
 }

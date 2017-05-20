@@ -6,7 +6,7 @@
 #include <list>
 #include "calibio.h"
 #include "stereoimage.h"
-#include "../libviso2/src/visualodometry.h"
+#include "../libviso2/src/viso_stereo.h"
 #include "../libviso2/src/timer.h"
 
 class VisualOdometryThread : public QThread
@@ -18,7 +18,7 @@ public:
     VisualOdometryThread(CalibIO *calib,QObject *parent = 0);
     ~VisualOdometryThread();
     void pushBack(StereoImage::simage &s,bool record_raw_odometry_=false);
-    std::vector<Matcher::p_match> getMatches() { return matches; }
+    std::vector<Matcher::p_match> getMatches() { return vo->getMatches(); }
     std::vector<bool> getInliers() { return inliers; }
     StereoImage::simage* getStereoImage() { return simg; }
     Matrix getHomographyTotal() { return H_total; }
@@ -39,11 +39,12 @@ private:
              ((float)(a.tv_usec-b.tv_usec))*1e-6;
     }
 
+    VisualOdometryStereo           *vo;
     StereoImage::simage            *simg;
     CalibIO                        *calib;
-    Matcher                        *matcher;
-    VisualOdometry                 *vo;
-    std::vector<Matcher::p_match>   matches;
+    //Matcher                        *matcher;
+
+    //std::vector<Matcher::p_match>   matches;
     std::vector<bool>               inliers;
     timeval                         time_prev,time_curr;
     bool                            record_raw_odometry;

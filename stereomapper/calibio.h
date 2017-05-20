@@ -10,7 +10,11 @@
 #include <stdint.h>
 #include <vector>
 #include <string>
-#include <opencv/cv.h> // causes libdc error message!
+#include <opencv2/core/core.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+//#include <opencv/cv.h> // causes libdc error message!
+
 
 #ifndef __CALIB_IO_H__
 #define __CALIB_IO_H__

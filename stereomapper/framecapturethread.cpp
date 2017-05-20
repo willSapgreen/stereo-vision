@@ -13,68 +13,108 @@ FrameCaptureThread::FrameCaptureThread(StereoImage *stereo_image,CalibIO *calib,
     calib(calib),
     cam_left(cam_left)
 {
-  cam_ind  = 0;
-  shutter  = 100;
-  dc_frame = NULL; 
+    cam_ind  = 0;
+    shutter  = 100;
+    dc_frame = NULL;
 }
 
-FrameCaptureThread::~FrameCaptureThread() {
-  if (Mx)     cvReleaseMat(&Mx);
-  if (My)     cvReleaseMat(&My);
-  if (I_rect) cvReleaseImage(&I_rect);
-  terminate();
-  closeCamera();
+//==============================================================================//
+
+FrameCaptureThread::~FrameCaptureThread()
+{
+    if (Mx)     cvReleaseMat(&Mx);
+    if (My)     cvReleaseMat(&My);
+    if (I_rect) cvReleaseImage(&I_rect);
+    terminate();
+    closeCamera();
 }
 
-vector<string> FrameCaptureThread::queryDevices() {
+//==============================================================================//
 
-  vector<string> device_names;
+vector<string> FrameCaptureThread::queryDevices()
+{
 
-  // create dc1394 instance
-  dc_dev = dc1394_new();
-  if (!dc_dev) {
-    cerr << "Could not create dc1394 instance." << endl;
+    vector<string> device_names;
+
+    // create dc1394 instance
+    dc_dev = dc1394_new();
+    if (!dc_dev)
+    {
+        cerr << "Could not create dc1394 instance." << endl;
+        return device_names;
+    }
+
+    // enumerate cameras
+    if (dc1394_camera_enumerate(dc_dev, &dc_list)!=0)
+    {
+        cerr << "Failed to enumerate cameras. Do you have access rights to /dev/video1394-x and /dev/raw1394?" << endl;
+        return device_names;
+    }
+
+    // check if 2 cameras found
+    if (dc_list->num <= 1)
+    {
+        cerr << "We need at least two cameras!" << endl;
+        return device_names;
+    }
+
+    // return device names
+    for (uint32_t i=0; i<dc_list->num; i++)
+    {
+        stringstream ss(stringstream::in | stringstream::out);
+        ss << std::hex << dc_list->ids[i].guid;
+        device_names.push_back(ss.str());
+    }
     return device_names;
-  }
-
-  // enumerate cameras
-  if (dc1394_camera_enumerate(dc_dev, &dc_list)!=0) {
-    cerr << "Failed to enumerate cameras. Do you have access rights to /dev/video1394-x and /dev/raw1394?" << endl;
-    return device_names;
-  }
-
-  // check if 2 cameras found
-  if (dc_list->num <= 1) {
-    cerr << "We need at least two cameras!" << endl;
-    return device_names;
-  }
-
-  // return device names
-  for (uint32_t i=0; i<dc_list->num; i++) {
-    stringstream ss(stringstream::in | stringstream::out);
-    ss << std::hex << dc_list->ids[i].guid;
-    device_names.push_back(ss.str());
-  }
-  return device_names;
 }
 
-void FrameCaptureThread::closeCamera() {
-  cout << endl << "Closing device ... ";
-  dc1394_capture_stop(dc_cam);
-  dc1394_video_set_transmission(dc_cam, DC1394_OFF);
-  dc1394_camera_free(dc_cam);
-  dc1394_free(dc_dev);
-  cout << "done." << endl;
+//==============================================================================//
+
+void FrameCaptureThread::closeCamera()
+{
+    cout << endl << "Closing device ... ";
+    dc1394_capture_stop(dc_cam);
+    dc1394_video_set_transmission(dc_cam, DC1394_OFF);
+    dc1394_camera_free(dc_cam);
+    dc1394_free(dc_dev);
+    cout << "done." << endl;
 }
 
-void FrameCaptureThread::run() {
+//==============================================================================//
 
+void FrameCaptureThread::run()
+{
   // TODO: This has to be released when thread is killed!
-  if (calib->calibrated()) {
+  if (calib->calibrated())
+  {
     Mx = cvCreateMat(calib->height(),calib->width(),CV_32F);
     My = cvCreateMat(calib->height(),calib->width(),CV_32F);
-    if (cam_left) cvInitUndistortRectifyMap(calib->K1,calib->D1,calib->R1,calib->P1_roi,Mx,My);
-    else          cvInitUndistortRectifyMap(calib->K2,calib->D2,calib->R2,calib->P2_roi,Mx,My);
+    if (cam_left)
+    {
+        //cvInitUndistortRectifyMap(calib->K1,calib->D1,calib->R1,calib->P1_roi,Mx,My);
+        // TODO:
+        // Replace all cvMat(Mat in c) with cv::Mat
+        cv::Mat tmpK1 = cv::cvarrToMat( calib->K1 );
+        cv::Mat tmpD1 = cv::cvarrToMat( calib->D1 );
+        cv::Mat tmpR1 = cv::cvarrToMat( calib->R1 );
+        cv::Mat tmpP1_roi = cv::cvarrToMat( calib->P1_roi );
+        cv::Mat tmpMx = cv::cvarrToMat( Mx );
+        cv::Mat tmpMy = cv::cvarrToMat( My );
+        cv::Size size( calib->roi->height, calib->roi->width );
+        cv::initUndistortRectifyMap( tmpK1, tmpD1, tmpR1, tmpP1_roi, size, CV_32FC1, tmpMx, tmpMy );
+    }
+    else
+    {
+        //cvInitUndistortRectifyMap(calib->K2,calib->D2,calib->R2,calib->P2_roi,Mx,My);
+        cv::Mat tmpK2 = cv::cvarrToMat( calib->K2 );
+        cv::Mat tmpD2 = cv::cvarrToMat( calib->D2 );
+        cv::Mat tmpR2 = cv::cvarrToMat( calib->R2 );
+        cv::Mat tmpP2_roi = cv::cvarrToMat( calib->P2_roi );
+        cv::Mat tmpMx = cv::cvarrToMat( Mx );
+        cv::Mat tmpMy = cv::cvarrToMat( My );
+        cv::Size size( calib->roi->height, calib->roi->width );
+        cv::initUndistortRectifyMap( tmpK2, tmpD2, tmpR2, tmpP2_roi, size, CV_32FC1, tmpMx, tmpMy );
+    }
     I_rect = cvCreateImage(cvSize(calib->width(),calib->height()),IPL_DEPTH_8U,1);
   }
 
@@ -254,7 +294,14 @@ void FrameCaptureThread::run() {
 
       IplImage *I = cvCreateImageHeader(cvSize(dc_frame->size[0],dc_frame->size[1]),IPL_DEPTH_8U,1);
       cvSetData(I,dc_frame->image,dc_frame->size[0]);
-      cvRemap(I,I_rect,Mx,My,CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS,cvScalar(0));
+
+      //cvRemap(I,I_rect,Mx,My,CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS,cvScalar(0));
+      cv::Mat matI = cv::cvarrToMat( I );
+      cv::Mat matI_rect = cv::cvarrToMat( I_rect );
+      cv::Mat matMx = cv::cvarrToMat( Mx );
+      cv::Mat matMy = cv::cvarrToMat( My );
+      cv::remap( matI, matI_rect, matMx, matMy, CV_INTER_LINEAR, cv::BORDER_WRAP, cv::Scalar(0) );
+
       int step; // OpenCV allocates aligned memory
       unsigned char *I_data;
       cvGetRawData(I_rect,&I_data,&step);

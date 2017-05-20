@@ -59,7 +59,7 @@ SOURCES       = main.cpp \
 		readfromfilesthread.cpp \
 		visualizethread.cpp \
 		planeestimation.cpp \
-		../libviso2/src/visualodometry.cpp \
+		  /libviso2/src/viso.cpp \
 		../libviso2/src/triangle.cpp \
 		../libviso2/src/matrix.cpp \
 		../libviso2/src/filter.cpp \
@@ -90,7 +90,7 @@ OBJECTS       = main.o \
 		readfromfilesthread.o \
 		visualizethread.o \
 		planeestimation.o \
-		visualodometry.o \
+		viso.o \
 		triangle.o \
 		matrix.o \
 		filter.o \
@@ -213,7 +213,7 @@ qmake:  FORCE
 
 dist: 
 	@$(CHK_DIR_EXISTS) .tmp/stereomapper1.0.0 || $(MKDIR) .tmp/stereomapper1.0.0 
-	$(COPY_FILE) --parents $(SOURCES) $(DIST) .tmp/stereomapper1.0.0/ && $(COPY_FILE) --parents maindialog.h selectcamerasdialog.h framecapturethread.h stereoimage.h view2d.h calibio.h view3d.h visualodometrythread.h stereothread.h ../libelas/src/elas.h ../libelas/src/descriptor.h savestereoimagethread.h readfromfilesthread.h visualizethread.h planeestimation.h ../libviso2/src/visualodometry.h ../libviso2/src/triangle.h ../libviso2/src/timer.h ../libviso2/src/matrix.h ../libviso2/src/matcher.h ../libviso2/src/filter.h .tmp/stereomapper1.0.0/ && $(COPY_FILE) --parents main.cpp maindialog.cpp selectcamerasdialog.cpp framecapturethread.cpp stereoimage.cpp view2d.cpp calibio.cpp view3d.cpp visualodometrythread.cpp stereothread.cpp ../libelas/src/elas.cpp ../libelas/src/descriptor.cpp savestereoimagethread.cpp readfromfilesthread.cpp visualizethread.cpp planeestimation.cpp ../libviso2/src/visualodometry.cpp ../libviso2/src/triangle.cpp ../libviso2/src/matrix.cpp ../libviso2/src/filter.cpp ../libviso2/src/matcher.cpp .tmp/stereomapper1.0.0/ && $(COPY_FILE) --parents maindialog.ui selectcamerasdialog.ui .tmp/stereomapper1.0.0/ && (cd `dirname .tmp/stereomapper1.0.0` && $(TAR) stereomapper1.0.0.tar stereomapper1.0.0 && $(COMPRESS) stereomapper1.0.0.tar) && $(MOVE) `dirname .tmp/stereomapper1.0.0`/stereomapper1.0.0.tar.gz . && $(DEL_FILE) -r .tmp/stereomapper1.0.0
+	$(COPY_FILE) --parents $(SOURCES) $(DIST) .tmp/stereomapper1.0.0/ && $(COPY_FILE) --parents maindialog.h selectcamerasdialog.h framecapturethread.h stereoimage.h view2d.h calibio.h view3d.h visualodometrythread.h stereothread.h ../libelas/src/elas.h ../libelas/src/descriptor.h savestereoimagethread.h readfromfilesthread.h visualizethread.h planeestimation.h ../libviso2/src/viso.h ../libviso2/src/triangle.h ../libviso2/src/timer.h ../libviso2/src/matrix.h ../libviso2/src/matcher.h ../libviso2/src/filter.h .tmp/stereomapper1.0.0/ && $(COPY_FILE) --parents main.cpp maindialog.cpp selectcamerasdialog.cpp framecapturethread.cpp stereoimage.cpp view2d.cpp calibio.cpp view3d.cpp visualodometrythread.cpp stereothread.cpp ../libelas/src/elas.cpp ../libelas/src/descriptor.cpp savestereoimagethread.cpp readfromfilesthread.cpp visualizethread.cpp planeestimation.cpp ../libviso2/src/viso.cpp ../libviso2/src/triangle.cpp ../libviso2/src/matrix.cpp ../libviso2/src/filter.cpp ../libviso2/src/matcher.cpp .tmp/stereomapper1.0.0/ && $(COPY_FILE) --parents maindialog.ui selectcamerasdialog.ui .tmp/stereomapper1.0.0/ && (cd `dirname .tmp/stereomapper1.0.0` && $(TAR) stereomapper1.0.0.tar stereomapper1.0.0 && $(COMPRESS) stereomapper1.0.0.tar) && $(MOVE) `dirname .tmp/stereomapper1.0.0`/stereomapper1.0.0.tar.gz . && $(DEL_FILE) -r .tmp/stereomapper1.0.0
 
 
 clean:compiler_clean 
@@ -241,7 +241,7 @@ moc_maindialog.cpp: framecapturethread.h \
 		stereoimage.h \
 		calibio.h \
 		visualodometrythread.h \
-		../libviso2/src/visualodometry.h \
+		../libviso2/src/viso.h \
 		../libviso2/src/matcher.h \
 		../libviso2/src/matrix.h \
 		../libviso2/src/timer.h \
@@ -282,7 +282,7 @@ moc_view3d.cpp: ../libviso2/src/matrix.h \
 
 moc_visualodometrythread.cpp: calibio.h \
 		stereoimage.h \
-		../libviso2/src/visualodometry.h \
+		../libviso2/src/viso.h \
 		../libviso2/src/matcher.h \
 		../libviso2/src/matrix.h \
 		../libviso2/src/timer.h \
@@ -351,7 +351,7 @@ main.o: main.cpp maindialog.h \
 		stereoimage.h \
 		calibio.h \
 		visualodometrythread.h \
-		../libviso2/src/visualodometry.h \
+		../libviso2/src/viso.h \
 		../libviso2/src/matcher.h \
 		../libviso2/src/matrix.h \
 		../libviso2/src/timer.h \
@@ -371,7 +371,7 @@ maindialog.o: maindialog.cpp maindialog.h \
 		stereoimage.h \
 		calibio.h \
 		visualodometrythread.h \
-		../libviso2/src/visualodometry.h \
+		../libviso2/src/viso.h \
 		../libviso2/src/matcher.h \
 		../libviso2/src/matrix.h \
 		../libviso2/src/timer.h \
@@ -418,7 +418,7 @@ view3d.o: view3d.cpp view3d.h \
 visualodometrythread.o: visualodometrythread.cpp visualodometrythread.h \
 		calibio.h \
 		stereoimage.h \
-		../libviso2/src/visualodometry.h \
+		../libviso2/src/viso.h \
 		../libviso2/src/matcher.h \
 		../libviso2/src/matrix.h \
 		../libviso2/src/timer.h
@@ -466,10 +466,10 @@ planeestimation.o: planeestimation.cpp planeestimation.h \
 		../libviso2/src/matrix.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o planeestimation.o planeestimation.cpp
 
-visualodometry.o: ../libviso2/src/visualodometry.cpp ../libviso2/src/visualodometry.h \
+visualodometry.o: ../libviso2/src/viso.cpp ../libviso2/src/viso.h \
 		../libviso2/src/matcher.h \
 		../libviso2/src/matrix.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o visualodometry.o ../libviso2/src/visualodometry.cpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o visualodometry.o ../libviso2/src/viso.cpp
 
 triangle.o: ../libviso2/src/triangle.cpp ../libelas/src/triangle.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o triangle.o ../libviso2/src/triangle.cpp

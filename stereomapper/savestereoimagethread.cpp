@@ -1,5 +1,4 @@
 #include "savestereoimagethread.h"
-#include <opencv/highgui.h>
 
 using namespace std;
 
@@ -23,12 +22,17 @@ void SaveStereoImageThread::run() {
   // save left image
   cvSetData(I,simg->I1,simg->step);
   sprintf(file_name,"%sI1_%06d.png",output_dir.c_str(),frame_number);
-  cvSaveImage(file_name,I);
+
+    //cvSaveImage(file_name,I);
+    cv::Mat matI = cv::cvarrToMat( I );
+    cv::imwrite( file_name, matI );
 
   // save right image
   cvSetData(I,simg->I2,simg->step);
   sprintf(file_name,"%sI2_%06d.png",output_dir.c_str(),frame_number);
-  cvSaveImage(file_name,I);
+
+    //cvSaveImage(file_name,I);
+    cv::imwrite( file_name, matI );
 
   // release header
   cvReleaseImageHeader(&I);

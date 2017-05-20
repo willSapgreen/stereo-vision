@@ -98,53 +98,59 @@ string MainDialog::createNewOutputDirectory() {
   return buffer;
 }
 
-void MainDialog::on_stereoScanButton_clicked() {
+void MainDialog::on_stereoScanButton_clicked()
+{
+    // stopping ... (wait for termination of visual odometry and stereo thread)
+    if (stereo_scan)
+    {
+        // set button text
+        ui->stereoScanButton->setText("Scan!");
 
-  // stopping ... (wait for termination of visual odometry and stereo thread)
-  if (stereo_scan) {
+        // stop stereo scanning
+        stereo_scan = false;
 
-    // set button text
-    ui->stereoScanButton->setText("Scan!");
-
-    // stop stereo scanning
-    stereo_scan = false;
-
-    // terminate all processes
-    vo_thread->terminate();
-    stereo_thread->terminate();
-    read_thread->terminate();
-    while (vo_thread->isRunning() || stereo_thread->isRunning() || read_thread->isRunning());
-
-  // starting ...
-  } else {
-
-    // set button text
-    ui->stereoScanButton->setText("Stop!");
-
-    // reset everything
-    vo_thread->resetHomographyTotal();
-    frame_number = 0;
-    gain_total   = 1;
-    ui->modelView->clearAll();
-    stereo_thread->clearReconstruction();
-
-    // create output dir
-    if (ui->saveToFilesCheckBox->isChecked())
-      output_dir = createNewOutputDirectory();
-
-    // start reading from files
-    if (ui->readFromFilesCheckBox->isChecked()) {
-      if (read_thread->isRunning())
+        // terminate all processes
+        vo_thread->terminate();
+        stereo_thread->terminate();
         read_thread->terminate();
-      QString input_dir = QFileDialog::getExistingDirectory (this,tr("Open Directory"),settings->value("input_dir_name","/home/geiger").toString(),QFileDialog::ShowDirsOnly);
-      settings->setValue("input_dir_name",input_dir);
-      read_thread->setInputDir(input_dir);
-      read_thread->start();
-    }
+        while (vo_thread->isRunning() || stereo_thread->isRunning() || read_thread->isRunning());
 
-    // start stereo scanning
-    stereo_scan = true;
-  }
+    // starting ...
+    }
+    else
+    {
+        // set button text
+        ui->stereoScanButton->setText("Stop!");
+
+        // reset everything
+        vo_thread->resetHomographyTotal();
+        frame_number = 0;
+        gain_total   = 1;
+        ui->modelView->clearAll();
+        stereo_thread->clearReconstruction();
+
+        // create output dir
+        if (ui->saveToFilesCheckBox->isChecked())
+        {
+            output_dir = createNewOutputDirectory();
+        }
+
+        // start reading from files
+        if (ui->readFromFilesCheckBox->isChecked())
+        {
+            if (read_thread->isRunning())
+            {
+                read_thread->terminate();
+            }
+            QString input_dir = QFileDialog::getExistingDirectory (this,tr("Open Directory"),settings->value("input_dir_name","/home/geiger").toString(),QFileDialog::ShowDirsOnly);
+            settings->setValue("input_dir_name",input_dir);
+            read_thread->setInputDir(input_dir);
+            read_thread->start();
+        }
+
+        // start stereo scanning
+        stereo_scan = true;
+    }
 }
 
 void MainDialog::keyPressEvent(QKeyEvent * event) {
@@ -169,120 +175,122 @@ void MainDialog::on_readFromFilesCheckBox_clicked() {
 /////////////////////////////////////////////////////////
 
 // this is the main loop!
-void MainDialog::newStereoImageArrived(){
+void MainDialog::newStereoImageArrived()
+{
+    // get stereo image deepcopy
+    StereoImage::simage simg(*stereo_image->getStereoImage());
+    stereo_image->pickedUp();
 
-  // get stereo image deepcopy
-  StereoImage::simage simg(*stereo_image->getStereoImage());
-  stereo_image->pickedUp();
+    // save images
+    if (stereo_scan && (ui->saveToFilesCheckBox->isChecked()))
+    {
+      if (frame_number!=0)
+        cout << stereo_image->timeDiff(simg.time,last_frame_time) << endl;
+      last_frame_time = simg.time;
+      SaveStereoImageThread* save_thread = new SaveStereoImageThread(simg,output_dir,frame_number++);
+      save_thread->start();
+      save_stereo_threads.push_back(save_thread);
 
-  // save images
-  if (stereo_scan && (ui->saveToFilesCheckBox->isChecked())) {
-    if (frame_number!=0)
-      cout << stereo_image->timeDiff(simg.time,last_frame_time) << endl;
-    last_frame_time = simg.time;
-    SaveStereoImageThread* save_thread = new SaveStereoImageThread(simg,output_dir,frame_number++);
-    save_thread->start();
-    save_stereo_threads.push_back(save_thread);
-
-    // stop capturing if we requested only a single frame!
-    if (save_single_frame)
-      on_stereoScanButton_clicked();
-  }
-
-  // check if any of the save threads have finished and must be deleted
-  vector<SaveStereoImageThread*> running_save_stereo_threads;
-  for (vector<SaveStereoImageThread*>::iterator it=save_stereo_threads.begin(); it!=save_stereo_threads.end(); it++) {
-    if ((*it)->isRunning())
-      running_save_stereo_threads.push_back(*it);
-    else
-      delete *it;
-  }
-  save_stereo_threads = running_save_stereo_threads;
-
-  // reconstruction mode
-  if (ui->tabWidget->currentIndex()==0) {
-
-    // show image
-    if (!stereo_scan) {
-      ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
-      ui->rightImageView->setImage(simg.I2,simg.width,simg.height);
+      // stop capturing if we requested only a single frame!
+      if (save_single_frame)
+        on_stereoScanButton_clicked();
     }
 
-    // start quad matching if idle
-    if (stereo_scan && simg.rectified && !vo_thread->isRunning()) {
-      QPalette p(palette());
-      if (ui->saveToFilesCheckBox->isChecked()) p.setColor(QPalette::Background, Qt::red);
-      else                                      p.setColor(QPalette::Background, Qt::green);
-      setPalette(p);
-      vo_thread->pushBack(simg,ui->recordRawOdometryCheckBox->isChecked());
-      vo_thread->start();
+    // check if any of the save threads have finished and must be deleted
+    vector<SaveStereoImageThread*> running_save_stereo_threads;
+    for (vector<SaveStereoImageThread*>::iterator it=save_stereo_threads.begin(); it!=save_stereo_threads.end(); it++) {
+      if ((*it)->isRunning())
+        running_save_stereo_threads.push_back(*it);
+      else
+        delete *it;
+    }
+    save_stereo_threads = running_save_stereo_threads;
+
+    // reconstruction mode
+    if (ui->tabWidget->currentIndex()==0) {
+
+      // show image
+      if (!stereo_scan) {
+        ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
+        ui->rightImageView->setImage(simg.I2,simg.width,simg.height);
+      }
+
+      // start quad matching if idle
+      if (stereo_scan && simg.rectified && !vo_thread->isRunning()) {
+        QPalette p(palette());
+        if (ui->saveToFilesCheckBox->isChecked()) p.setColor(QPalette::Background, Qt::red);
+        else                                      p.setColor(QPalette::Background, Qt::green);
+        setPalette(p);
+        vo_thread->pushBack(simg,ui->recordRawOdometryCheckBox->isChecked());
+        vo_thread->start();
+      }
+
+    // elas mode
+    } else if (ui->tabWidget->currentIndex()==1) {
+      ui->elasImageView->setImage(simg.I1,simg.width,simg.height);
+      if (stereo_scan && !stereo_thread->isRunning() && !ui->saveToFilesCheckBox->isChecked()) {
+        stereo_thread->pushBack(simg,ui->subsamplingCheckBox->isChecked());
+        stereo_thread->start();
+      }
+
+    // left full image
+    } else if (ui->tabWidget->currentIndex()==2) {
+      ui->leftFullImageView->setImage(simg.I1,simg.width,simg.height);
+
+    // right full image
+    } else if (ui->tabWidget->currentIndex()==3) {
+      ui->rightFullImageView->setImage(simg.I2,simg.width,simg.height);
     }
 
-  // elas mode
-  } else if (ui->tabWidget->currentIndex()==1) {
-    ui->elasImageView->setImage(simg.I1,simg.width,simg.height);
+
+    id MainDialog::newHomographyArrived()
+
+
+    // get stereo image deepcopy
+    StereoImage::simage simg(*vo_thread->getStereoImage());
+    Matrix H_total = vo_thread->getHomographyTotal();
+    gain_total *= vo_thread->getGain();
+    vo_thread->pickedUp();
+
+    // show quad match
+    ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
+    ui->rightImageView->setImage(simg.I2,simg.width,simg.height);
+
+    // show images
+    ui->leftImageView->setMatches(vo_thread->getMatches(),vo_thread->getInliers(),true);
+    ui->rightImageView->setMatches(vo_thread->getMatches(),vo_thread->getInliers(),false);
+
+    // start dense stereo matching if idle
     if (stereo_scan && !stereo_thread->isRunning() && !ui->saveToFilesCheckBox->isChecked()) {
-      stereo_thread->pushBack(simg,ui->subsamplingCheckBox->isChecked());
+      stereo_thread->pushBack(simg,H_total,gain_total);
       stereo_thread->start();
+      gain_total = 1;
+      //ui->modelView->addCamera(H_total,0.08,true);
+    } else {
+      //ui->modelView->addCamera(H_total,0.05,false);
     }
 
-  // left full image
-  } else if (ui->tabWidget->currentIndex()==2) {
-    ui->leftFullImageView->setImage(simg.I1,simg.width,simg.height);
 
-  // right full image
-  } else if (ui->tabWidget->currentIndex()==3) {
-    ui->rightFullImageView->setImage(simg.I2,simg.width,simg.height);
-  }
-}
+    id MainDialog::newDisparityMapArrived() {
 
-void MainDialog::newHomographyArrived() {
+    // get stereo image deepcopy
+    StereoImage::simage simg(*stereo_thread->getStereoImage());
 
-  // get stereo image deepcopy
-  StereoImage::simage simg(*vo_thread->getStereoImage());
-  Matrix H_total = vo_thread->getHomographyTotal();
-  gain_total *= vo_thread->getGain();
-  vo_thread->pickedUp();
+    if (ui->tabWidget->currentIndex()==0)
+      ui->disparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width,simg.height);
+    else {
+      if (!ui->subsamplingCheckBox->isChecked())
+        ui->elasDisparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width,simg.height);
+      else
+        ui->elasDisparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width/2,simg.height/2);
+    }
 
-  // show quad match
-  ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
-  ui->rightImageView->setImage(simg.I2,simg.width,simg.height);
+    if (stereo_scan && ui->tabWidget->currentIndex()==0) {
+      ui->modelView->addCamera(stereo_thread->getHomographyTotal(),0.1,true);
+      ui->modelView->addPoints(stereo_thread->getPoints());
+    }
 
-  // show images
-  ui->leftImageView->setMatches(vo_thread->getMatches(),vo_thread->getInliers(),true);
-  ui->rightImageView->setMatches(vo_thread->getMatches(),vo_thread->getInliers(),false);  
-
-  // start dense stereo matching if idle
-  if (stereo_scan && !stereo_thread->isRunning() && !ui->saveToFilesCheckBox->isChecked()) {
-    stereo_thread->pushBack(simg,H_total,gain_total);
-    stereo_thread->start();
-    gain_total = 1;
-    //ui->modelView->addCamera(H_total,0.08,true);
-  } else {
-    //ui->modelView->addCamera(H_total,0.05,false);
-  }
-}
-
-void MainDialog::newDisparityMapArrived() {
-
-  // get stereo image deepcopy
-  StereoImage::simage simg(*stereo_thread->getStereoImage());
-
-  if (ui->tabWidget->currentIndex()==0)
-    ui->disparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width,simg.height);
-  else {
-    if (!ui->subsamplingCheckBox->isChecked())
-      ui->elasDisparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width,simg.height);
-    else
-      ui->elasDisparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width/2,simg.height/2);
-  }
-
-  if (stereo_scan && ui->tabWidget->currentIndex()==0) {
-    ui->modelView->addCamera(stereo_thread->getHomographyTotal(),0.1,true);
-    ui->modelView->addPoints(stereo_thread->getPoints());
-  }
-
-  stereo_thread->pickedUp();
+    stereo_thread->pickedUp();
 }
 
 

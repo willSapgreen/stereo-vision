@@ -25,11 +25,12 @@ SOURCES += main.cpp\
     readfromfilesthread.cpp \
     visualizethread.cpp \
     planeestimation.cpp \
-    ../libviso2/src/visualodometry.cpp \
+    ../libviso2/src/viso.cpp \
     ../libviso2/src/triangle.cpp \
     ../libviso2/src/matrix.cpp \
     ../libviso2/src/filter.cpp \
-    ../libviso2/src/matcher.cpp
+    ../libviso2/src/matcher.cpp \
+    ../libviso2/src/viso_stereo.cpp
 
 HEADERS  += maindialog.h \
     selectcamerasdialog.h \
@@ -46,16 +47,21 @@ HEADERS  += maindialog.h \
     readfromfilesthread.h \
     visualizethread.h\
     planeestimation.h \
-    ../libviso2/src/visualodometry.h \
+    ../libviso2/src/viso.h \
     ../libviso2/src/triangle.h \
     ../libviso2/src/timer.h \
     ../libviso2/src/matrix.h \
     ../libviso2/src/matcher.h \
-    ../libviso2/src/filter.h
+    ../libviso2/src/filter.h \
+    ../libviso2/src/viso_stereo.h
 
 FORMS    += maindialog.ui \
     selectcamerasdialog.ui
 
-LIBS += -ldc1394 -lcxcore -lcv -lhighgui
+LIBS += -ldc1394 -lGLU -L/usr/local/lib \
+                 -lopencv_core\
+                 -lopencv_highgui\
+                 -lopencv_imgproc\
+                 -lopencv_imgcodecs\ #-lcxcore -lcv -lhighgui
 
 QMAKE_CXXFLAGS += -O3 -pipe -fomit-frame-pointer -msse3

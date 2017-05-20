@@ -61,11 +61,11 @@ void StereoThread::run() {
   param.support_texture = 30;
   //param.incon_threshold = 5;
   //param.incon_min_support = 10;
-  param.filter_slanted_faces = 1;
-  param.calib_cu   = cu;
-  param.calib_cv   = cv;
-  param.calib_f    = f;
-  param.calib_base = base;
+  //param.filter_slanted_faces = 1;
+  //param.calib_cu   = cu;
+  //param.calib_cv   = cv;
+  //param.calib_f    = f;
+  //param.calib_base = base;
 
   int32_t d_width  = simg->width;
   int32_t d_height = simg->height;
