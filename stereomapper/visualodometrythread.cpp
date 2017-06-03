@@ -4,120 +4,132 @@ using namespace std;
 
 VisualOdometryThread::VisualOdometryThread(CalibIO *calib,QObject *parent) :
     QThread(parent),
-    calib(calib) {
+    calib(calib)
+{
+    //Matcher::parameters matcherParam( 3,50,50,300,2,5,5,1,1,2 );
+    //Matcher::parameters matcherParam;
+    //matcherParam.match_radius = 200;
+    //matcherParam.refinement = 2;
+    //matcher = new Matcher( matcherParam );
 
-  //Matcher::parameters matcherParam( 3,50,50,300,2,5,5,1,1,2 );
-  //Matcher::parameters matcherParam;
-  //matcherParam.match_radius = 200;
-  //matcherParam.refinement = 2;
-  //matcher = new Matcher( matcherParam );
-
-  // set most important visual odometry parameters
-  // for a full parameter list, look at: viso_stereo.h
-  VisualOdometryStereo::parameters voParam;
-  // calibration parameters for sequence 2010_03_09_drive_0019
-  voParam.calib.f  = 645.24; // focal length in pixels
-  voParam.calib.cu = 635.96; // principal point (u-coordinate) in pixels
-  voParam.calib.cv = 194.13; // principal point (v-coordinate) in pixels
-  voParam.base     = 0.5707; // baseline in meters
-  vo      = new VisualOdometryStereo( voParam );
-
-  simg              = 0;
-  time_prev.tv_sec  = 0;
-  time_prev.tv_usec = 0;
-  time_curr.tv_sec  = 0;
-  time_curr.tv_usec = 0;
-  record_raw_odometry = false;
-  H_total = Matrix(4,4);
-  H_total.eye();
-}
-
-VisualOdometryThread::~VisualOdometryThread() {
-  //delete matcher;
-  delete vo;
-  if (simg!=0) {
-    delete simg;
-    simg = 0;
-  }
-}
-
-void VisualOdometryThread::pushBack(StereoImage::simage &s,bool record_raw_odometry_) {
-  if (simg!=0) {
-    delete simg;
-    simg = 0;
-  }
-  simg = new StereoImage::simage(s);
-  record_raw_odometry = record_raw_odometry_;
-}
-
-void VisualOdometryThread::run() {
-
-  if (simg!=0 && simg->width>0 && simg->height>0) {
-
-    // get time
-    time_prev = time_curr;
-    time_curr = simg->time;
-
-    // read calibration
-    float f  = 1;
-    float cu = 0;
-    float cv = 0;
-    float b  = 1;
-    if (calib->calibrated()) {
-      f  =  cvmGet(calib->P1_roi,0,0);
-      cu =  cvmGet(calib->P1_roi,0,2);
-      cv =  cvmGet(calib->P1_roi,1,2);
-      b  = -cvmGet(calib->P2_roi,0,3)/cvmGet(calib->P2_roi,0,0);
+    // set most important visual odometry parameters
+    // for a full parameter list, look at: viso_stereo.h
+    VisualOdometryStereo::parameters voParam;
+    // read calibration if available.
+    if (calib->calibrated())
+    {
+        voParam.calib.f  =  cvmGet(calib->P1_roi,0,0); // focal length in pixels
+        voParam.calib.cu =  cvmGet(calib->P1_roi,0,2); // principal point (u-coordinate) in pixels
+        voParam.calib.cv =  cvmGet(calib->P1_roi,1,2); // principal point (v-coordinate) in pixels
+        voParam.base  = -cvmGet(calib->P2_roi,0,3)/cvmGet(calib->P2_roi,0,0); // baseline in meters
     }
+    vo      = new VisualOdometryStereo( voParam );
 
-    Timer t;
-    t.start("push");
-    int32_t dim[3] = {0};
-    dim[0] = simg->width;
-    dim[1] = simg->height;
-    dim[2] = simg->step;
-    //matcher->pushBack( simg->I1,simg->I2,dim,false );
+    simg              = 0;
+    time_prev.tv_sec  = 0;
+    time_prev.tv_usec = 0;
+    time_curr.tv_sec  = 0;
+    time_curr.tv_usec = 0;
+    record_raw_odometry = false;
+    H_total = Matrix(4,4);
+    H_total.eye();
+}
 
-    t.start("match");
-    //matcher->matchFeatures(2);
-    //matcher->bucketFeatures(5,50,50);
+VisualOdometryThread::~VisualOdometryThread()
+{
+    //delete matcher;
+    delete vo;
+    if (simg!=0)
+    {
+        delete simg;
+        simg = 0;
+    }
+}
 
-    // grab matches
-    //matches = matcher->getMatches();
+//==============================================================================//
 
-    t.start("vo");
+void VisualOdometryThread::pushBack(StereoImage::simage &s,bool record_raw_odometry_)
+{
+    if (simg!=0)
+    {
+        delete simg;
+        simg = 0;
+    }
+    simg = new StereoImage::simage(s);
+    record_raw_odometry = record_raw_odometry_;
+}
 
-    // update: H_total = H_total * H^-1
-    //if (matches.size()>0)
-    //{
+//==============================================================================//
 
-      // visual odometry
-      vo->process( simg->I1,simg->I2,dim,false );
-      Matrix H_inv = Matrix::eye(4);
-      Matrix H = vo->getMotion();
+void VisualOdometryThread::run()
+{
+    if (simg!=0 && simg->width>0 && simg->height>0)
+    {
+        // get time
+        time_prev = time_curr;
+        time_curr = simg->time;
 
-      // get inliers
-      vector<int32_t> inliers_ = vo->getInlierIndices();
-      inliers.clear();
-      for (int32_t i=0; i<(int32_t)vo->getMatches().size(); i++)
-      {
-        inliers.push_back(false);
-      }
-      for (std::vector<int32_t>::iterator it=inliers_.begin(); it!=inliers_.end(); it++)
-      {
-          inliers[*it] = true;
-      }
+        // read calibration
+        //float f  = 1;
+        //float cu = 0;
+        //float cv = 0;
+        //float b  = 1;
+        //if (calib->calibrated())
+        //{
+            //f  =  cvmGet(calib->P1_roi,0,0);
+            //cu =  cvmGet(calib->P1_roi,0,2);
+            //cv =  cvmGet(calib->P1_roi,1,2);
+            //b  = -cvmGet(calib->P2_roi,0,3)/cvmGet(calib->P2_roi,0,0);
+        //}
 
-      // compute gain
-      gain = vo->getGain( inliers_ );
+        //Timer t;
+        //t.start("push");
+        int32_t dim[3] = {0};
+        dim[0] = simg->width;
+        dim[1] = simg->height;
+        dim[2] = simg->step;
+        //matcher->pushBack( simg->I1,simg->I2,dim,false );
 
-      if (H_inv.solve(H))
-      {
-        H_total = H_total*H_inv;
-        picked = false;
-        emit newHomographyArrived();
-        while (!picked) usleep(1000);
-      }
-    //}
-  }
+        //t.start("match");
+        //matcher->matchFeatures(2);
+        //matcher->bucketFeatures(5,50,50);
+
+        // grab matches
+        //matches = matcher->getMatches();
+
+        //t.start("vo");
+
+        // update: H_total = H_total * H^-1
+        //if (matches.size()>0)
+        //{
+
+          // visual odometry
+          vo->process( simg->I1,simg->I2,dim,false );
+          Matrix H_inv = Matrix::eye(4);
+          Matrix H = vo->getMotion();
+
+          // get inliers
+          vector<int32_t> inliers_ = vo->getInlierIndices();
+          inliers.clear();
+          for (int32_t i=0; i<(int32_t)vo->getMatches().size(); i++)
+          {
+            inliers.push_back(false);
+          }
+          for (std::vector<int32_t>::iterator it=inliers_.begin(); it!=inliers_.end(); it++)
+          {
+              inliers[*it] = true;
+          }
+
+          // compute gain
+          gain = vo->getGain( inliers_ );
+
+          if (H_inv.solve(H))
+          {
+            H_total = H_total*H_inv;
+            picked = false;
+            emit newHomographyArrived();
+            while (!picked) usleep(1000);
+          }
+        //}
+    }
 }

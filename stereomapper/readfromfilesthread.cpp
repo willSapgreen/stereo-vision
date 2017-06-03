@@ -1,8 +1,6 @@
 #include "readfromfilesthread.h"
 #include "QFileDialog"
 
-#define DEBUG_READ_IN_IMAGE 0
-
 using namespace std;
 
 ReadFromFilesThread::ReadFromFilesThread(StereoImage *stereo_image,CalibIO *calib,QObject *parent) :
@@ -60,11 +58,6 @@ void ReadFromFilesThread::run()
                 IplImage* I1_curr = cvLoadImage(fn1,CV_LOAD_IMAGE_GRAYSCALE);
                 IplImage* I2_curr = cvLoadImage(fn2,CV_LOAD_IMAGE_GRAYSCALE);
 
-#if DEBUG_READ_IN_IMAGE
-                //cv::imshow( "Left-Img-Before", matI1_curr );
-                //cv::waitKey( 0 );
-#endif
-
                 I1.push_back(I1_curr);
                 I2.push_back(I2_curr);
             }
@@ -83,18 +76,12 @@ void ReadFromFilesThread::run()
             cvGetRawData(I1[i],&I1_data,&step1);
             cvGetRawData(I2[i],&I2_data,&step2);
 
-#if DEBUG_READ_IN_IMAGE
-            cv::Mat tmp = cv::cvarrToMat( I1[i] );
-            cv::imshow( "Left-Img-After", tmp );
-            cv::waitKey( 0 );
-#endif
-
             stereo_image->setImage(I1_data,I1[i]->width,I1[i]->height,step1,true,true);
             stereo_image->setImage(I2_data,I2[i]->width,I2[i]->height,step2,false,true);
             usleep(1e6/fps);
         }
 
-    // release images
+        // release images
         for (int32_t i=0; i<(int32_t)I1.size(); i++)
         {
             cvReleaseImage(&I1[i]);

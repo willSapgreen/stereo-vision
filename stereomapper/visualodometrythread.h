@@ -34,9 +34,10 @@ protected:
 
 private:
 
-    float timeDiff(timeval a,timeval b) {
-      return ((float)(a.tv_sec -b.tv_sec )) +
-             ((float)(a.tv_usec-b.tv_usec))*1e-6;
+    float timeDiff(timeval a,timeval b)
+    {
+        return ((float)(a.tv_sec -b.tv_sec )) +
+               ((float)(a.tv_usec-b.tv_usec))*1e-6;
     }
 
     VisualOdometryStereo           *vo;

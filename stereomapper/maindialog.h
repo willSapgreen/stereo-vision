@@ -75,7 +75,12 @@ private slots:
     void on_stereoScanButton_clicked();
     void on_exitButton_clicked();
     void on_stopCapturingButton_clicked();
+
+    /**
+      Handle "Start Grabbing" button click.
+    */
     void on_captureFromFirewireButton_clicked();
+
     void newStereoImageArrived();
     void newHomographyArrived();
     void newDisparityMapArrived();

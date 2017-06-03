@@ -16,7 +16,8 @@ class SelectCamerasDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit SelectCamerasDialog(FrameCaptureThread *cam_left,FrameCaptureThread *cam_right,int shutter,CalibIO *calib,QWidget *parent = 0);
+    explicit SelectCamerasDialog(FrameCaptureThread *cam_left,FrameCaptureThread *cam_right,
+                                 int shutter,CalibIO *calib,QWidget *parent = 0);
     ~SelectCamerasDialog();
 
 private:

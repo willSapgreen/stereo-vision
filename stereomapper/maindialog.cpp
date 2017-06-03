@@ -9,63 +9,70 @@ using namespace std;
 
 MainDialog::MainDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::MainDialog) {
+    ui(new Ui::MainDialog)
+{
+    setWindowFlags(Qt::WindowMinMaxButtonsHint);
+    ui->setupUi(this);
+    stereo_image = new StereoImage();
+    time_of_last_frame.tv_sec  = 0;
+    time_of_last_frame.tv_usec = 0;
+    calib = new CalibIO();
+    capture_mutex = new QMutex();
+    cam_left      = new FrameCaptureThread(stereo_image,calib,true,capture_mutex);
+    cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
+    vo_thread     = new VisualOdometryThread(calib);
+    stereo_thread = new StereoThread(calib,ui->modelView);
+    read_thread   = new ReadFromFilesThread(stereo_image,calib);
+    visualize_thread = new VisualizeThread(ui->disparityView,ui->modelView);
+    QObject::connect(stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
+    QObject::connect(vo_thread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
+    QObject::connect(stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
+    frame_number = 0;
+    gain_total   = 1;
+    stereo_scan  = false;
+    settings = new QSettings("KIT", "stereomapper");
+    QPalette p(palette());
+    p.setColor(QPalette::Background, Qt::white);
+    setPalette(p);
 
-  setWindowFlags(Qt::WindowMinMaxButtonsHint);
-  ui->setupUi(this);
-  stereo_image = new StereoImage();
-  time_of_last_frame.tv_sec  = 0;
-  time_of_last_frame.tv_usec = 0;
-  calib = new CalibIO();
-  capture_mutex = new QMutex();
-  cam_left      = new FrameCaptureThread(stereo_image,calib,true,capture_mutex);
-  cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
-  vo_thread     = new VisualOdometryThread(calib);
-  stereo_thread = new StereoThread(calib,ui->modelView);
-  read_thread   = new ReadFromFilesThread(stereo_image,calib);
-  visualize_thread = new VisualizeThread(ui->disparityView,ui->modelView);
-  QObject::connect(stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
-  QObject::connect(vo_thread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
-  QObject::connect(stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
-  frame_number = 0;
-  gain_total   = 1;
-  stereo_scan  = false;
-  settings = new QSettings("KIT", "stereomapper");
-  QPalette p(palette());
-  p.setColor(QPalette::Background, Qt::white);
-  setPalette(p);
-
-  ui->shutterSpinBox->setValue(settings->value("shutter_value","100").toInt());
-  ui->modelView->setBackgroundWallFlag(ui->backgroundWallCheckBox->isChecked());
-  ui->modelView->setShowCamerasFlag(ui->showCamerasCheckBox->isChecked());
-  ui->modelView->setGridFlag(ui->gridCheckBox->isChecked());
-  ui->modelView->setWhiteFlag(ui->whiteCheckBox->isChecked());
+    ui->shutterSpinBox->setValue(settings->value("shutter_value","100").toInt());
+    ui->modelView->setBackgroundWallFlag(ui->backgroundWallCheckBox->isChecked());
+    ui->modelView->setShowCamerasFlag(ui->showCamerasCheckBox->isChecked());
+    ui->modelView->setGridFlag(ui->gridCheckBox->isChecked());
+    ui->modelView->setWhiteFlag(ui->whiteCheckBox->isChecked());
 }
+
+//==============================================================================//
 
 MainDialog::~MainDialog()
 {
-  delete ui;
-  delete cam_left;
-  delete cam_right;
-  delete capture_mutex;
-  delete stereo_image;
-  delete calib;
-  delete vo_thread;
-  delete stereo_thread;
-  delete read_thread;
-  delete visualize_thread;
-  delete settings;
+    delete ui;
+    delete cam_left;
+    delete cam_right;
+    delete capture_mutex;
+    delete stereo_image;
+    delete calib;
+    delete vo_thread;
+    delete stereo_thread;
+    delete read_thread;
+    delete visualize_thread;
+    delete settings;
 }
+
+//==============================================================================//
 
 void MainDialog::on_captureFromFirewireButton_clicked()
 {
-  SelectCamerasDialog dlg(cam_left,cam_right,ui->shutterSpinBox->value(),calib);
-  dlg.exec();
-  if (cam_left->isRunning()||cam_right->isRunning()) {
-    ui->captureFromFirewireButton->setEnabled(false);
-    ui->stopCapturingButton->setEnabled(true);
-  }
+    SelectCamerasDialog dlg(cam_left,cam_right,ui->shutterSpinBox->value(),calib);
+    dlg.exec();
+    if (cam_left->isRunning()||cam_right->isRunning())
+    {
+        ui->captureFromFirewireButton->setEnabled(false);
+        ui->stopCapturingButton->setEnabled(true);
+    }
 }
+
+//==============================================================================//
 
 void MainDialog::on_stopCapturingButton_clicked()
 {
@@ -184,62 +191,85 @@ void MainDialog::newStereoImageArrived()
     // save images
     if (stereo_scan && (ui->saveToFilesCheckBox->isChecked()))
     {
-      if (frame_number!=0)
-        cout << stereo_image->timeDiff(simg.time,last_frame_time) << endl;
-      last_frame_time = simg.time;
-      SaveStereoImageThread* save_thread = new SaveStereoImageThread(simg,output_dir,frame_number++);
-      save_thread->start();
-      save_stereo_threads.push_back(save_thread);
+        if (frame_number!=0)
+        {
+            cout << stereo_image->timeDiff(simg.time,last_frame_time) << endl;
+        }
+        last_frame_time = simg.time;
+        SaveStereoImageThread* save_thread = new SaveStereoImageThread(simg,output_dir,frame_number++);
+        save_thread->start();
+        save_stereo_threads.push_back(save_thread);
 
-      // stop capturing if we requested only a single frame!
-      if (save_single_frame)
-        on_stereoScanButton_clicked();
+        // stop capturing if we requested only a single frame!
+        if (save_single_frame)
+        {
+            on_stereoScanButton_clicked();
+        }
     }
 
     // check if any of the save threads have finished and must be deleted
     vector<SaveStereoImageThread*> running_save_stereo_threads;
-    for (vector<SaveStereoImageThread*>::iterator it=save_stereo_threads.begin(); it!=save_stereo_threads.end(); it++) {
-      if ((*it)->isRunning())
-        running_save_stereo_threads.push_back(*it);
-      else
-        delete *it;
+    for (vector<SaveStereoImageThread*>::iterator it=save_stereo_threads.begin(); it!=save_stereo_threads.end(); it++)
+    {
+        if ((*it)->isRunning())
+        {
+            running_save_stereo_threads.push_back(*it);
+        }
+        else
+        {
+            delete *it;
+        }
     }
     save_stereo_threads = running_save_stereo_threads;
 
     // reconstruction mode
-    if (ui->tabWidget->currentIndex()==0) {
+    if (ui->tabWidget->currentIndex()==0)
+    {
+        // show image
+        if (!stereo_scan)
+        {
+            ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
+            ui->rightImageView->setImage(simg.I2,simg.width,simg.height);
+        }
 
-      // show image
-      if (!stereo_scan) {
-        ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
-        ui->rightImageView->setImage(simg.I2,simg.width,simg.height);
-      }
+        // start quad matching if idle
+        if (stereo_scan && simg.rectified && !vo_thread->isRunning())
+        {
+            QPalette p(palette());
 
-      // start quad matching if idle
-      if (stereo_scan && simg.rectified && !vo_thread->isRunning()) {
-        QPalette p(palette());
-        if (ui->saveToFilesCheckBox->isChecked()) p.setColor(QPalette::Background, Qt::red);
-        else                                      p.setColor(QPalette::Background, Qt::green);
-        setPalette(p);
-        vo_thread->pushBack(simg,ui->recordRawOdometryCheckBox->isChecked());
-        vo_thread->start();
-      }
+            if (ui->saveToFilesCheckBox->isChecked())
+            {
+                p.setColor(QPalette::Background, Qt::red);
+            }
+            else
+            {
+                p.setColor(QPalette::Background, Qt::green);
+            }
 
+            setPalette(p);
+            vo_thread->pushBack(simg,ui->recordRawOdometryCheckBox->isChecked());
+            vo_thread->start();
+        }
+    }
     // elas mode
-    } else if (ui->tabWidget->currentIndex()==1) {
-      ui->elasImageView->setImage(simg.I1,simg.width,simg.height);
-      if (stereo_scan && !stereo_thread->isRunning() && !ui->saveToFilesCheckBox->isChecked()) {
-        stereo_thread->pushBack(simg,ui->subsamplingCheckBox->isChecked());
-        stereo_thread->start();
-      }
-
+    else if (ui->tabWidget->currentIndex()==1)
+    {
+        ui->elasImageView->setImage(simg.I1,simg.width,simg.height);
+        if (stereo_scan && !stereo_thread->isRunning() && !ui->saveToFilesCheckBox->isChecked())
+        {
+          stereo_thread->pushBack(simg,ui->subsamplingCheckBox->isChecked());
+          stereo_thread->start();
+        }
+    }
     // left full image
-    } else if (ui->tabWidget->currentIndex()==2) {
-      ui->leftFullImageView->setImage(simg.I1,simg.width,simg.height);
-
+    else if (ui->tabWidget->currentIndex()==2)
+    {
+        ui->leftFullImageView->setImage(simg.I1,simg.width,simg.height);
+    }
     // right full image
-    } else if (ui->tabWidget->currentIndex()==3) {
-      ui->rightFullImageView->setImage(simg.I2,simg.width,simg.height);
+    else if (ui->tabWidget->currentIndex()==3)
+    {
+        ui->rightFullImageView->setImage(simg.I2,simg.width,simg.height);
     }
 }
 

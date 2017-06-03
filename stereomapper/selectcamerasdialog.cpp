@@ -50,55 +50,67 @@ SelectCamerasDialog::SelectCamerasDialog(FrameCaptureThread *cam_left,FrameCaptu
 
 SelectCamerasDialog::~SelectCamerasDialog()
 {
-  delete ui;
-  delete settings;
+    delete ui;
+    delete settings;
 }
+
+//==============================================================================//
 
 void SelectCamerasDialog::on_buttonBox_accepted()
 {
-  // calibration file
-  if (ui->rectifyCheckBox->isChecked()) {
-    if (calib->readCalibFromFile(ui->calibFileNameEdit->text().toStdString()))
-      calib->showCalibrationParameters();
-    else {
-      calib->clear();
-      cout << "Calibration file not found." << endl;
+    // calibration file
+    if (ui->rectifyCheckBox->isChecked())
+    {
+        if (calib->readCalibFromFile(ui->calibFileNameEdit->text().toStdString()))
+        {
+          calib->showCalibrationParameters();
+        }
+        else
+        {
+            calib->clear();
+            cout << "Calibration file not found." << endl;
+        }
     }
-  } else {
-    calib->clear();
-    cout << "No rectification! Using raw input images ..." << endl;
-  }
+    else
+    {
+        calib->clear();
+        cout << "No rectification! Using raw input images ..." << endl;
+    }
 
-  // camera indices
-  int cam_ind_left  = ui->leftCameraComboBox->currentIndex();
-  int cam_ind_right = ui->rightCameraComboBox->currentIndex();
+    // camera indices
+    int cam_ind_left  = ui->leftCameraComboBox->currentIndex();
+    int cam_ind_right = ui->rightCameraComboBox->currentIndex();
 
-  // return if cameras have not be assigned
-  if (cam_ind_left<0 || cam_ind_right<0) {
-    cout << "At least one camera has not been assigned!" << endl;
-    return;
-  }
+    // return if cameras have not be assigned
+    if (cam_ind_left<0 || cam_ind_right<0) {
+      cout << "At least one camera has not been assigned!" << endl;
+      return;
+    }
 
-  // return if same camera for left and right image has been selected
-  if (cam_ind_left==cam_ind_right) {
-    cout << "Same camera ids have been selected for left and right camera!" << endl;
-    return;
-  }
+    // return if same camera for left and right image has been selected
+    if (cam_ind_left==cam_ind_right) {
+      cout << "Same camera ids have been selected for left and right camera!" << endl;
+      return;
+    }
 
-  // set camera indices
-  cam_left->setCamInd(cam_ind_left,shutter);
-  cam_right->setCamInd(cam_ind_right,shutter);
+    // set camera indices
+    cam_left->setCamInd(cam_ind_left,shutter);
+    cam_right->setCamInd(cam_ind_right,shutter);
 
-  // start capturing process
-  cam_left->start();
-  cam_right->start();
+    // start capturing process
+    cam_left->start();
+    cam_right->start();
 }
 
-void SelectCamerasDialog::on_selectFileButton_clicked() {
-  QFileInfo file_info(ui->calibFileNameEdit->text());
-  QString file_name = QFileDialog::getOpenFileName(this, tr("Open File"),file_info.absoluteDir().absolutePath(),tr("Calib files (*.txt)"));
-  if (file_name!=0) {
-    ui->calibFileNameEdit->setText(file_name);
-    settings->setValue("calib_file_name",file_name);
-  }
+//==============================================================================//
+
+void SelectCamerasDialog::on_selectFileButton_clicked()
+{
+    QFileInfo file_info(ui->calibFileNameEdit->text());
+    QString file_name = QFileDialog::getOpenFileName(this, tr("Open File"),file_info.absoluteDir().absolutePath(),tr("Calib files (*.txt)"));
+    if (file_name!=0)
+    {
+        ui->calibFileNameEdit->setText(file_name);
+        settings->setValue("calib_file_name",file_name);
+    }
 }
