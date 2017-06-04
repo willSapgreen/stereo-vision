@@ -24,9 +24,13 @@ MainDialog::MainDialog(QWidget *parent) :
     stereo_thread = new StereoThread(calib,ui->modelView);
     read_thread   = new ReadFromFilesThread(stereo_image,calib);
     visualize_thread = new VisualizeThread(ui->disparityView,ui->modelView);
+
+    // connect to the objects for communication.
     QObject::connect(stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
     QObject::connect(vo_thread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
     QObject::connect(stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
+    QObject::connect(calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
+
     frame_number = 0;
     gain_total   = 1;
     stereo_scan  = false;
@@ -61,49 +65,173 @@ MainDialog::~MainDialog()
 
 //==============================================================================//
 
-void MainDialog::on_captureFromFirewireButton_clicked()
+string MainDialog::createNewOutputDirectory()
 {
-    SelectCamerasDialog dlg(cam_left,cam_right,ui->shutterSpinBox->value(),calib);
-    dlg.exec();
-    if (cam_left->isRunning()||cam_right->isRunning())
+    char buffer[1024];
+    for (int32_t i=0; i<9999; i++)
     {
-        ui->captureFromFirewireButton->setEnabled(false);
-        ui->stopCapturingButton->setEnabled(true);
+        sprintf(buffer,"output_%04d/I1_000000.png",i);
+        FILE *file = fopen (buffer,"r");
+        if (file!=NULL)
+        {
+            fclose (file);
+            continue;
+        }
+        sprintf(buffer,"output_%04d/",i);
+        break;
+    }
+    cout << "Creating output directory: " << buffer << endl;
+    char cmd[1024];
+    sprintf(cmd,"mkdir %s",buffer);
+    system(cmd);
+    return buffer;
+}
+
+//==============================================================================//
+
+void MainDialog::keyPressEvent(QKeyEvent * event)
+{
+    if (event->key()==Qt::Key_S)
+    {
+        save_single_frame = false;
+        on_stereoScanButton_clicked();
+    }
+    if (event->key()==Qt::Key_F)
+    {
+        save_single_frame = true;
+        on_stereoScanButton_clicked();
     }
 }
 
 //==============================================================================//
 
-void MainDialog::on_stopCapturingButton_clicked()
+void MainDialog::on_shutterSpinBox_valueChanged(int )
 {
-  cam_left->stopRecording();
-  cam_right->stopRecording();
-  ui->captureFromFirewireButton->setEnabled(true);
-  ui->stopCapturingButton->setEnabled(false);
+    settings->setValue("shutter_value",ui->shutterSpinBox->value());
 }
 
-void MainDialog::on_exitButton_clicked() {
-  exit(0);
+//==============================================================================//
+
+void MainDialog::on_resizeSmallPushButton_clicked()
+{
+    int minw = ui->modelView->minimumWidth();
+    int minh = ui->modelView->minimumHeight();
+    int maxw = ui->modelView->maximumWidth();
+    int maxh = ui->modelView->maximumHeight();
+
+    ui->modelView->setMinimumWidth(320);
+    ui->modelView->setMinimumHeight(480);
+    ui->modelView->setMaximumWidth(320);
+    ui->modelView->setMaximumHeight(480);
+    ui->modelView->setShowCamerasFlag(0);
+    ui->modelView->setGridFlag(0);
+
+    ui->modelView->recordHuman();
+
+    ui->modelView->setMinimumWidth (minw);
+    ui->modelView->setMinimumHeight(minh);
+    ui->modelView->setMaximumWidth (maxw);
+    ui->modelView->setMaximumHeight(maxh);
+    ui->modelView->setShowCamerasFlag(ui->showCamerasCheckBox->isChecked());
+    ui->modelView->setGridFlag(ui->gridCheckBox->isChecked());
 }
 
-string MainDialog::createNewOutputDirectory() {
-  char buffer[1024];
-  for (int32_t i=0; i<9999; i++) {
-    sprintf(buffer,"output_%04d/I1_000000.png",i);
-    FILE *file = fopen (buffer,"r");
-    if (file!=NULL) {
-      fclose (file);
-      continue;
+//==============================================================================//
+
+void MainDialog::on_whiteCheckBox_clicked()
+{
+    ui->modelView->setWhiteFlag(ui->whiteCheckBox->isChecked());
+}
+
+//==============================================================================//
+
+void MainDialog::on_gridCheckBox_clicked()
+{
+    ui->modelView->setGridFlag(ui->gridCheckBox->isChecked());
+}
+
+//==============================================================================//
+
+void MainDialog::on_recordPosesPushButton_clicked()
+{
+    ui->modelView->playPoses(true);
+}
+
+//==============================================================================//
+
+void MainDialog::on_playPosesPushButton_clicked()
+{
+    ui->modelView->playPoses(false);
+}
+
+//==============================================================================//
+
+void MainDialog::on_deletePosePushButton_clicked()
+{
+    ui->modelView->delPose();
+}
+
+//==============================================================================//
+
+void MainDialog::on_addPosePushButton_clicked()
+{
+    ui->modelView->addPose();
+}
+
+//==============================================================================//
+
+void MainDialog::on_resizePushButton_clicked()
+{
+    ui->modelView->setMinimumWidth(800);
+    ui->modelView->setMinimumHeight(450);
+}
+
+//==============================================================================//
+
+void MainDialog::on_showCamerasCheckBox_clicked()
+{
+    ui->modelView->setShowCamerasFlag(ui->showCamerasCheckBox->isChecked());
+}
+
+//==============================================================================//
+
+void MainDialog::on_backgroundWallCheckBox_clicked()
+{
+    ui->modelView->setBackgroundWallFlag(ui->backgroundWallCheckBox->isChecked());
+}
+
+//==============================================================================//
+
+void MainDialog::on_backgroundWallSlider_sliderMoved(int position)
+{
+    ui->modelView->setBackgroundWallPosition((float)position/100.0);
+}
+
+//==============================================================================//
+
+void MainDialog::on_resetBusButton_clicked()
+{
+    cam_left->resetBus();
+    cam_right->resetBus();
+
+    // show successfull reset message:
+    cout << endl;
+    cout << "=============================================" << endl;
+    cout << "The firewire bus has been reset successfully!" << endl;
+    cout << "=============================================" << endll;
+}
+
+//==============================================================================//
+
+void MainDialog::on_readFromFilesCheckBox_clicked()
+{
+    if (ui->readFromFilesCheckBox->isChecked())
+    {
+        frame_number = 0;
     }
-    sprintf(buffer,"output_%04d/",i);
-    break;
-  }
-  cout << "Creating output directory: " << buffer << endl;
-  char cmd[1024];
-  sprintf(cmd,"mkdir %s",buffer);
-  system(cmd);
-  return buffer;
 }
+
+//==============================================================================//
 
 void MainDialog::on_stereoScanButton_clicked()
 {
@@ -160,26 +288,37 @@ void MainDialog::on_stereoScanButton_clicked()
     }
 }
 
-void MainDialog::keyPressEvent(QKeyEvent * event) {
-  if (event->key()==Qt::Key_S) {
-    save_single_frame = false;
-    on_stereoScanButton_clicked();
-  }
-  if (event->key()==Qt::Key_F) {
-    save_single_frame = true;
-    on_stereoScanButton_clicked();
-  }
+//==============================================================================//
+
+void MainDialog::on_exitButton_clicked()
+{
+    exit(0);
 }
 
-void MainDialog::on_readFromFilesCheckBox_clicked() {
-  if (ui->readFromFilesCheckBox->isChecked()) {
-    frame_number = 0;
-  }
+//==============================================================================//
+
+void MainDialog::on_stopCapturingButton_clicked()
+{
+    cam_left->stopRecording();
+    cam_right->stopRecording();
+    ui->captureFromFirewireButton->setEnabled(true);
+    ui->stopCapturingButton->setEnabled(false);
 }
 
-/////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////
+//==============================================================================//
+
+void MainDialog::on_captureFromFirewireButton_clicked()
+{
+    SelectCamerasDialog dlg(cam_left,cam_right,ui->shutterSpinBox->value(),calib);
+    dlg.exec();
+    if (cam_left->isRunning()||cam_right->isRunning())
+    {
+        ui->captureFromFirewireButton->setEnabled(false);
+        ui->stopCapturingButton->setEnabled(true);
+    }
+}
+
+//==============================================================================//
 
 // this is the main loop!
 void MainDialog::newStereoImageArrived()
@@ -257,8 +396,8 @@ void MainDialog::newStereoImageArrived()
         ui->elasImageView->setImage(simg.I1,simg.width,simg.height);
         if (stereo_scan && !stereo_thread->isRunning() && !ui->saveToFilesCheckBox->isChecked())
         {
-          stereo_thread->pushBack(simg,ui->subsamplingCheckBox->isChecked());
-          stereo_thread->start();
+            stereo_thread->pushBack(simg,ui->subsamplingCheckBox->isChecked());
+            stereo_thread->start();
         }
     }
     // left full image
@@ -272,6 +411,8 @@ void MainDialog::newStereoImageArrived()
         ui->rightFullImageView->setImage(simg.I2,simg.width,simg.height);
     }
 }
+
+//==============================================================================//
 
 void MainDialog::newHomographyArrived()
 {
@@ -290,15 +431,20 @@ void MainDialog::newHomographyArrived()
     ui->rightImageView->setMatches(vo_thread->getMatches(),vo_thread->getInliers(),false);
 
     // start dense stereo matching if idle
-    if (stereo_scan && !stereo_thread->isRunning() && !ui->saveToFilesCheckBox->isChecked()) {
-      stereo_thread->pushBack(simg,H_total,gain_total);
-      stereo_thread->start();
-      gain_total = 1;
-      //ui->modelView->addCamera(H_total,0.08,true);
-    } else {
-      //ui->modelView->addCamera(H_total,0.05,false);
+    if (stereo_scan && !stereo_thread->isRunning() && !ui->saveToFilesCheckBox->isChecked())
+    {
+        stereo_thread->pushBack(simg,H_total,gain_total);
+        stereo_thread->start();
+        gain_total = 1;
+        //ui->modelView->addCamera(H_total,0.08,true);
+    }
+    else
+    {
+        //ui->modelView->addCamera(H_total,0.05,false);
     }
 }
+
+//==============================================================================//
 
 void MainDialog::newDisparityMapArrived()
 {
@@ -306,101 +452,85 @@ void MainDialog::newDisparityMapArrived()
     StereoImage::simage simg(*stereo_thread->getStereoImage());
 
     if (ui->tabWidget->currentIndex()==0)
-      ui->disparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width,simg.height);
-    else {
-      if (!ui->subsamplingCheckBox->isChecked())
-        ui->elasDisparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width,simg.height);
+    {
+        ui->disparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width,simg.height);
+    }
+    else
+    {
+        if (!ui->subsamplingCheckBox->isChecked())
+        {
+            ui->elasDisparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width,simg.height);
+        }
       else
-        ui->elasDisparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width/2,simg.height/2);
+        {
+            ui->elasDisparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width/2,simg.height/2);
+        }
     }
 
-    if (stereo_scan && ui->tabWidget->currentIndex()==0) {
-      ui->modelView->addCamera(stereo_thread->getHomographyTotal(),0.1,true);
-      ui->modelView->addPoints(stereo_thread->getPoints());
+    if (stereo_scan && ui->tabWidget->currentIndex()==0)
+    {
+        ui->modelView->addCamera(stereo_thread->getHomographyTotal(),0.1,true);
+        ui->modelView->addPoints(stereo_thread->getPoints());
     }
 
     stereo_thread->pickedUp();
 }
 
+//==============================================================================//
 
-void MainDialog::on_resetBusButton_clicked() {
+void MainDialog::onNewCalibrationData()
+{
+    std::cout << "on new calibration data";
+    std::cout << std::endl;
+    calib->pickedUp();
+    calib->showCalibrationParameters();
 
-  cam_left->resetBus();
-  cam_right->resetBus();
+    // Stop, disconnect, and delete the following threads which need the calibration data.
+    if( cam_left->isRunning() )
+    {
+        cam_left->stopRecording();
+        cam_left->quit();
+        while( cam_left->isRunning() );
+    }
+    delete cam_left;
+    cam_left = 0;
 
-  // show successfull reset message:
-  cout << endl;
-  cout << "=============================================" << endl;
-  cout << "The firewire bus has been reset successfully!" << endl;
-  cout << "=============================================" << endll;
-}
+    if( cam_right->isRunning() )
+    {
+        cam_right->stopRecording();
+        cam_right->quit();
+        while( cam_right->isRunning() );
+    }
+    delete cam_right;
+    cam_right = 0;
 
-void MainDialog::on_backgroundWallSlider_sliderMoved(int position) {
-  ui->modelView->setBackgroundWallPosition((float)position/100.0);
-}
+    if( vo_thread->isRunning() )
+    {
+        vo_thread->quit();
+        while( vo_thread->isRunning() );
+    }
+    vo_thread->disconnect();
+    delete vo_thread;
+    vo_thread = 0;
 
-void MainDialog::on_backgroundWallCheckBox_clicked() {
-  ui->modelView->setBackgroundWallFlag(ui->backgroundWallCheckBox->isChecked());
-}
+    if( stereo_thread->isRunning() )
+    {
+        stereo_thread->quit();
+        while( stereo_thread->isRunning() );
+    }
+    stereo_thread->disconnect();
+    delete stereo_thread;
+    stereo_thread = 0;
 
-void MainDialog::on_showCamerasCheckBox_clicked(){
-  ui->modelView->setShowCamerasFlag(ui->showCamerasCheckBox->isChecked());
-}
+    // Generate the new threads which need the calibration data.
+    cam_left      = new FrameCaptureThread(stereo_image,calib,true,capture_mutex);
+    cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
+    vo_thread     = new VisualOdometryThread(calib);
+    stereo_thread = new StereoThread(calib,ui->modelView);
 
-void MainDialog::on_gridCheckBox_clicked() {
-  ui->modelView->setGridFlag(ui->gridCheckBox->isChecked());
-}
-
-void MainDialog::on_whiteCheckBox_clicked() {
-  ui->modelView->setWhiteFlag(ui->whiteCheckBox->isChecked());
-}
-
-void MainDialog::on_addPosePushButton_clicked() {
-  ui->modelView->addPose();
-}
-
-void MainDialog::on_deletePosePushButton_clicked() {
-  ui->modelView->delPose();
-}
-
-void MainDialog::on_playPosesPushButton_clicked() {
-  ui->modelView->playPoses(false);
-}
-
-void MainDialog::on_recordPosesPushButton_clicked() {
-  ui->modelView->playPoses(true);
-}
-
-void MainDialog::on_resizePushButton_clicked() {
-  ui->modelView->setMinimumWidth(800);
-  ui->modelView->setMinimumHeight(450);
-}
-
-
-void MainDialog::on_resizeSmallPushButton_clicked() {
-
-  int minw = ui->modelView->minimumWidth();
-  int minh = ui->modelView->minimumHeight();
-  int maxw = ui->modelView->maximumWidth();
-  int maxh = ui->modelView->maximumHeight();
-
-  ui->modelView->setMinimumWidth(320);
-  ui->modelView->setMinimumHeight(480);
-  ui->modelView->setMaximumWidth(320);
-  ui->modelView->setMaximumHeight(480);
-  ui->modelView->setShowCamerasFlag(0);
-  ui->modelView->setGridFlag(0);
-
-  ui->modelView->recordHuman();
-
-  ui->modelView->setMinimumWidth (minw);
-  ui->modelView->setMinimumHeight(minh);
-  ui->modelView->setMaximumWidth (maxw);
-  ui->modelView->setMaximumHeight(maxh);
-  ui->modelView->setShowCamerasFlag(ui->showCamerasCheckBox->isChecked());
-  ui->modelView->setGridFlag(ui->gridCheckBox->isChecked());
-}
-
-void MainDialog::on_shutterSpinBox_valueChanged(int ) {
-  settings->setValue("shutter_value",ui->shutterSpinBox->value());
+    // connect to the objects for communication.
+    QObject::connect(stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
+    QObject::connect(vo_thread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
+    QObject::connect(stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
+    QObject::connect(calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
 }

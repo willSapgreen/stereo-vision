@@ -46,89 +46,106 @@ void StereoThread::pushBack(StereoImage::simage &s,bool subsampling_) {
   subsampling = subsampling_;
 }
 
-void StereoThread::run() {
+//==============================================================================//
 
-  // get intrinsics from calibration file
-  getIntrinsics();
+void StereoThread::run()
+{
+    // get intrinsics from calibration file
+    getIntrinsics();
 
-  Timer t;
-  t.start("elas");
+    Timer t;
+    t.start("elas");
 
-  Elas::parameters param(Elas::ROBOTICS);
-  param.postprocess_only_left = true;
-  param.filter_adaptive_mean = true; ///////////////////
-  //param.support_threshold = 0.85;
-  param.support_texture = 30;
-  //param.incon_threshold = 5;
-  //param.incon_min_support = 10;
-  //param.filter_slanted_faces = 1;
-  //param.calib_cu   = cu;
-  //param.calib_cv   = cv;
-  //param.calib_f    = f;
-  //param.calib_base = base;
+    Elas::parameters param(Elas::ROBOTICS);
+    param.postprocess_only_left = true;
+    param.filter_adaptive_mean = true; ///////////////////
+    //param.support_threshold = 0.85;
+    param.support_texture = 30;
+    //param.incon_threshold = 5;
+    //param.incon_min_support = 10;
+    //param.filter_slanted_faces = 1;
+    //param.calib_cu   = cu;
+    //param.calib_cv   = cv;
+    //param.calib_f    = f;
+    //param.calib_base = base;
 
-  int32_t d_width  = simg->width;
-  int32_t d_height = simg->height;
-  if (mode==1 && subsampling) {
-    d_width  = simg->width/2;
-    d_height = simg->height/2;
-    param.subsampling = 1;
-  }
-  simg->D1 = (float*)malloc(d_width*d_height*sizeof(float));
-  simg->D2 = (float*)malloc(d_width*d_height*sizeof(float));
-  const int32_t dims[3] = {simg->width,simg->height,simg->step};
-
-  Elas elas(param);
-  elas.process(simg->I1,simg->I2,simg->D1,simg->D2,dims);
-
-  // create color map
-  float d_max = 200;
-  if (D_color!=0)
-    free (D_color);
-  D_color = (float*)malloc(3*d_width*d_height*sizeof(float));
-  for (int32_t u=0; u<d_width; u++) {
-    for (int32_t v=0; v<d_height; v++) {
-      int32_t addr1 = v*d_width+u;
-      int32_t addr2 = 3*(v*d_width+u);
-      float val = min(simg->D1[addr1]/d_max,(float)1.0);
-      if (val<=0) {
-        D_color[addr2+0] = 0; D_color[addr2+1] = 0; D_color[addr2+2] = 0;
-      } else {
-        float h2 = 6.0*(1.0-val);
-        float x  = 1.0*(1.0-fabs(fmod(h2,(float)2.0)-1.0));
-        if      (0<=h2&&h2<1)  { D_color[addr2+0] = 1; D_color[addr2+1] = x; D_color[addr2+2] = 0; }
-        else if (1<=h2&&h2<2)  { D_color[addr2+0] = x; D_color[addr2+1] = 1; D_color[addr2+2] = 0; }
-        else if (2<=h2&&h2<3)  { D_color[addr2+0] = 0; D_color[addr2+1] = 1; D_color[addr2+2] = x; }
-        else if (3<=h2&&h2<4)  { D_color[addr2+0] = 0; D_color[addr2+1] = x; D_color[addr2+2] = 1; }
-        else if (4<=h2&&h2<5)  { D_color[addr2+0] = x; D_color[addr2+1] = 0; D_color[addr2+2] = 1; }
-        else if (5<=h2&&h2<=6) { D_color[addr2+0] = 1; D_color[addr2+1] = 0; D_color[addr2+2] = x; }
-      }
+    int32_t d_width  = simg->width;
+    int32_t d_height = simg->height;
+    if (mode==1 && subsampling)
+    {
+        d_width  = simg->width/2;
+        d_height = simg->height/2;
+        param.subsampling = 1;
     }
-  }
+    simg->D1 = (float*)malloc(d_width*d_height*sizeof(float));
+    simg->D2 = (float*)malloc(d_width*d_height*sizeof(float));
+    const int32_t dims[3] = {simg->width,simg->height,simg->step};
 
-  if (mode==0) {
+    Elas elas(param);
+    elas.process(simg->I1,simg->I2,simg->D1,simg->D2,dims);
 
-    // adjust H_total
-    // THIS IS BUGGY! (09_08_0023)
-    if (0) {
-      t.start("plane estimation");
-      if (!plane_estimated) {
-        plane->computeTransformationFromDisparityMap(simg->D1,simg->width,simg->height,simg->width,f,cu,cv,base);
-        H_init = Matrix::inv(plane->getTransformation());
-        plane_estimated = true;
-      }
-      H_total = H_init*H_total;
+    // create color map
+    float d_max = 200;
+    if (D_color!=0)
+    {
+      free (D_color);
     }
 
-    t.start("reconstruction");
-    if (calib->calibrated())
-      addDisparityMapToReconstruction();
-  }
+    D_color = (float*)malloc(3*d_width*d_height*sizeof(float));
+    for (int32_t u=0; u<d_width; u++)
+    {
+        for (int32_t v=0; v<d_height; v++)
+        {
+            int32_t addr1 = v*d_width+u;
+            int32_t addr2 = 3*(v*d_width+u);
+            float val = min(simg->D1[addr1]/d_max,(float)1.0);
+            if (val<=0)
+            {
+                D_color[addr2+0] = 0; D_color[addr2+1] = 0; D_color[addr2+2] = 0;
+            }
+            else
+            {
+                float h2 = 6.0*(1.0-val);
+                float x  = 1.0*(1.0-fabs(fmod(h2,(float)2.0)-1.0));
+                if      (0<=h2&&h2<1)  { D_color[addr2+0] = 1; D_color[addr2+1] = x; D_color[addr2+2] = 0; }
+                else if (1<=h2&&h2<2)  { D_color[addr2+0] = x; D_color[addr2+1] = 1; D_color[addr2+2] = 0; }
+                else if (2<=h2&&h2<3)  { D_color[addr2+0] = 0; D_color[addr2+1] = 1; D_color[addr2+2] = x; }
+                else if (3<=h2&&h2<4)  { D_color[addr2+0] = 0; D_color[addr2+1] = x; D_color[addr2+2] = 1; }
+                else if (4<=h2&&h2<5)  { D_color[addr2+0] = x; D_color[addr2+1] = 0; D_color[addr2+2] = 1; }
+                else if (5<=h2&&h2<=6) { D_color[addr2+0] = 1; D_color[addr2+1] = 0; D_color[addr2+2] = x; }
+            }
+        }
+    }
 
-  picked = false;
-  emit newDisparityMapArrived();
-  while (!picked) usleep(1000);
+    if (mode==0)
+    {
+        // adjust H_total
+        // THIS IS BUGGY! (09_08_0023)
+        if (0)
+        {
+            t.start("plane estimation");
+            if (!plane_estimated)
+            {
+                plane->computeTransformationFromDisparityMap(simg->D1,simg->width,simg->height,simg->width,f,cu,cv,base);
+                H_init = Matrix::inv(plane->getTransformation());
+                plane_estimated = true;
+            }
+            H_total = H_init*H_total;
+        }
+
+        t.start("reconstruction");
+        if (calib->calibrated())
+        {
+            addDisparityMapToReconstruction();
+        }
+    }
+
+    picked = false;
+    emit newDisparityMapArrived();
+    while (!picked) usleep(1000);
 }
+
+//==============================================================================//
 
 StereoThread::map3d StereoThread::createCurrentMap() {
 

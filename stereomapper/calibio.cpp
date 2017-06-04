@@ -3,7 +3,7 @@
 #include <sstream>
 using namespace std;
 
-CalibIO::CalibIO ()
+CalibIO::CalibIO( QObject* parent ) : QObject( parent )
 {
     c_dist = 0;
     roi    = 0;
@@ -19,6 +19,7 @@ CalibIO::CalibIO ()
     P1_roi = 0;
     P2     = 0;
     P2_roi = 0;
+    m_picked = false;
 }
 
 //==============================================================================//
@@ -60,6 +61,7 @@ void CalibIO::clear()
     P1_roi = 0;
     P2     = 0;
     P2_roi = 0;
+    m_picked = false;
 }
 
 //==============================================================================//
@@ -93,6 +95,12 @@ bool CalibIO::readCalibFromFile (string calib_file_name)
 
     // close file and return success
     fclose (calib_file);
+
+    // signal to main dialog that we have the new calibration data.
+    m_picked = false;
+    emit newCalibrationData();
+    while (!m_picked) usleep(1000);
+
     return success;
 }
 

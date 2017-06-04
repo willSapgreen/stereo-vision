@@ -11,7 +11,12 @@ FrameCaptureThread::FrameCaptureThread(StereoImage *stereo_image,CalibIO *calib,
     stereo_image(stereo_image),
     capture_mutex(capture_mutex),
     calib(calib),
-    cam_left(cam_left)
+    cam_left(cam_left),
+    Mx(0),
+    My(0),
+    I_rect(0),
+    dc_cam(0),
+    dc_dev(0)
 {
     cam_ind  = 0;
     shutter  = 100;
@@ -73,10 +78,16 @@ vector<string> FrameCaptureThread::queryDevices()
 void FrameCaptureThread::closeCamera()
 {
     cout << endl << "Closing device ... ";
-    dc1394_capture_stop(dc_cam);
-    dc1394_video_set_transmission(dc_cam, DC1394_OFF);
-    dc1394_camera_free(dc_cam);
-    dc1394_free(dc_dev);
+    if( dc_cam )
+    {
+        dc1394_capture_stop(dc_cam);
+        dc1394_video_set_transmission(dc_cam, DC1394_OFF);
+        dc1394_camera_free(dc_cam);
+    }
+    if( dc_dev )
+    {
+        dc1394_free(dc_dev);
+    }
     cout << "done." << endl;
 }
 

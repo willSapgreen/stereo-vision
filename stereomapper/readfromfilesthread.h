@@ -8,7 +8,8 @@
 #include "calibio.h"
 #include "stereoimage.h"
 
-class ReadFromFilesThread : public QThread {
+class ReadFromFilesThread : public QThread
+{
 
     Q_OBJECT
 
