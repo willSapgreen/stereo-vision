@@ -6,17 +6,18 @@
 
 using namespace std;
 
-FrameCaptureThread::FrameCaptureThread(StereoImage *stereo_image,CalibIO *calib,bool cam_left,QMutex *capture_mutex,QObject *parent) :
+FrameCaptureThread::FrameCaptureThread( StereoImage *stereo_image,CalibIO *calib,bool cam_left,
+                                        QMutex *capture_mutex,QObject *parent ) :
     QThread(parent),
-    stereo_image(stereo_image),
-    capture_mutex(capture_mutex),
-    calib(calib),
-    cam_left(cam_left),
     Mx(0),
     My(0),
     I_rect(0),
+    stereo_image(stereo_image),
+    capture_mutex(capture_mutex),
+    dc_dev(0),
     dc_cam(0),
-    dc_dev(0)
+    calib(calib),
+    cam_left(cam_left)
 {
     cam_ind  = 0;
     shutter  = 100;

@@ -1261,8 +1261,8 @@ void internalerror()
 /*****************************************************************************/
 
 void parsecommandline(int argc, char **argv, struct behavior *b) {
-  int i, j, k;
-  char workstring[FILENAMESIZE];
+  int i, j;//, k;
+  //char workstring[FILENAMESIZE];
 
   b->poly = b->refine = b->quality = 0;
   b->vararea = b->fixedarea = b->usertest = 0;
@@ -1419,27 +1419,27 @@ void printtriangle(struct mesh *m, struct behavior *b, struct otri *t)
   struct osub printsh;
   vertex printvertex;
 
-  printf("triangle x%lx with orientation %d:\n", (unsigned long long) t->tri,
+  printf("triangle x%llu with orientation %d:\n", (unsigned long long) t->tri,
          t->orient);
   decode(t->tri[0], printtri);
   if (printtri.tri == m->dummytri) {
     printf("    [0] = Outer space\n");
   } else {
-    printf("    [0] = x%lx  %d\n", (unsigned long long) printtri.tri,
+    printf("    [0] = x%llu  %d\n", (unsigned long long) printtri.tri,
            printtri.orient);
   }
   decode(t->tri[1], printtri);
   if (printtri.tri == m->dummytri) {
     printf("    [1] = Outer space\n");
   } else {
-    printf("    [1] = x%lx  %d\n", (unsigned long long) printtri.tri,
+    printf("    [1] = x%llu  %d\n", (unsigned long long) printtri.tri,
            printtri.orient);
   }
   decode(t->tri[2], printtri);
   if (printtri.tri == m->dummytri) {
     printf("    [2] = Outer space\n");
   } else {
-    printf("    [2] = x%lx  %d\n", (unsigned long long) printtri.tri,
+    printf("    [2] = x%llu  %d\n", (unsigned long long) printtri.tri,
            printtri.orient);
   }
 
@@ -1447,38 +1447,38 @@ void printtriangle(struct mesh *m, struct behavior *b, struct otri *t)
   if (printvertex == (vertex) NULL)
     printf("    Origin[%d] = NULL\n", (t->orient + 1) % 3 + 3);
   else
-    printf("    Origin[%d] = x%lx  (%.12g, %.12g)\n",
+    printf("    Origin[%d] = x%llu  (%.12g, %.12g)\n",
            (t->orient + 1) % 3 + 3, (unsigned long long) printvertex,
            printvertex[0], printvertex[1]);
   dest(*t, printvertex);
   if (printvertex == (vertex) NULL)
     printf("    Dest  [%d] = NULL\n", (t->orient + 2) % 3 + 3);
   else
-    printf("    Dest  [%d] = x%lx  (%.12g, %.12g)\n",
+    printf("    Dest  [%d] = x%llu  (%.12g, %.12g)\n",
            (t->orient + 2) % 3 + 3, (unsigned long long) printvertex,
            printvertex[0], printvertex[1]);
   apex(*t, printvertex);
   if (printvertex == (vertex) NULL)
     printf("    Apex  [%d] = NULL\n", t->orient + 3);
   else
-    printf("    Apex  [%d] = x%lx  (%.12g, %.12g)\n",
+    printf("    Apex  [%d] = x%llu  (%.12g, %.12g)\n",
            t->orient + 3, (unsigned long long) printvertex,
            printvertex[0], printvertex[1]);
 
   if (b->usesegments) {
     sdecode(t->tri[6], printsh);
     if (printsh.ss != m->dummysub) {
-      printf("    [6] = x%lx  %d\n", (unsigned long long) printsh.ss,
+      printf("    [6] = x%llu  %d\n", (unsigned long long) printsh.ss,
              printsh.ssorient);
     }
     sdecode(t->tri[7], printsh);
     if (printsh.ss != m->dummysub) {
-      printf("    [7] = x%lx  %d\n", (unsigned long long) printsh.ss,
+      printf("    [7] = x%llu  %d\n", (unsigned long long) printsh.ss,
              printsh.ssorient);
     }
     sdecode(t->tri[8], printsh);
     if (printsh.ss != m->dummysub) {
-      printf("    [8] = x%lx  %d\n", (unsigned long long) printsh.ss,
+      printf("    [8] = x%llu  %d\n", (unsigned long long) printsh.ss,
              printsh.ssorient);
     }
   }
@@ -1499,26 +1499,27 @@ void printtriangle(struct mesh *m, struct behavior *b, struct otri *t)
 /*                                                                           */
 /*****************************************************************************/
 
-void printsubseg(struct mesh *m, struct behavior *b, struct osub *s)
+//void printsubseg(struct mesh *m, struct behavior *b, struct osub *s)
+void printsubseg(struct mesh *m, struct osub *s)
 {
   struct osub printsh;
   struct otri printtri;
   vertex printvertex;
 
-  printf("subsegment x%lx with orientation %d and mark %d:\n",
+  printf("subsegment x%llu with orientation %d and mark %d:\n",
          (unsigned long long) s->ss, s->ssorient, mark(*s));
   sdecode(s->ss[0], printsh);
   if (printsh.ss == m->dummysub) {
     printf("    [0] = No subsegment\n");
   } else {
-    printf("    [0] = x%lx  %d\n", (unsigned long long) printsh.ss,
+    printf("    [0] = x%llu  %d\n", (unsigned long long) printsh.ss,
            printsh.ssorient);
   }
   sdecode(s->ss[1], printsh);
   if (printsh.ss == m->dummysub) {
     printf("    [1] = No subsegment\n");
   } else {
-    printf("    [1] = x%lx  %d\n", (unsigned long long) printsh.ss,
+    printf("    [1] = x%llu  %d\n", (unsigned long long) printsh.ss,
            printsh.ssorient);
   }
 
@@ -1526,14 +1527,14 @@ void printsubseg(struct mesh *m, struct behavior *b, struct osub *s)
   if (printvertex == (vertex) NULL)
     printf("    Origin[%d] = NULL\n", 2 + s->ssorient);
   else
-    printf("    Origin[%d] = x%lx  (%.12g, %.12g)\n",
+    printf("    Origin[%d] = x%llu  (%.12g, %.12g)\n",
            2 + s->ssorient, (unsigned long long) printvertex,
            printvertex[0], printvertex[1]);
   sdest(*s, printvertex);
   if (printvertex == (vertex) NULL)
     printf("    Dest  [%d] = NULL\n", 3 - s->ssorient);
   else
-    printf("    Dest  [%d] = x%lx  (%.12g, %.12g)\n",
+    printf("    Dest  [%d] = x%llu  (%.12g, %.12g)\n",
            3 - s->ssorient, (unsigned long long) printvertex,
            printvertex[0], printvertex[1]);
 
@@ -1541,14 +1542,14 @@ void printsubseg(struct mesh *m, struct behavior *b, struct osub *s)
   if (printtri.tri == m->dummytri) {
     printf("    [6] = Outer space\n");
   } else {
-    printf("    [6] = x%lx  %d\n", (unsigned long long) printtri.tri,
+    printf("    [6] = x%llu  %d\n", (unsigned long long) printtri.tri,
            printtri.orient);
   }
   decode(s->ss[7], printtri);
   if (printtri.tri == m->dummytri) {
     printf("    [7] = Outer space\n");
   } else {
-    printf("    [7] = x%lx  %d\n", (unsigned long long) printtri.tri,
+    printf("    [7] = x%llu  %d\n", (unsigned long long) printtri.tri,
            printtri.orient);
   }
 
@@ -1556,14 +1557,14 @@ void printsubseg(struct mesh *m, struct behavior *b, struct osub *s)
   if (printvertex == (vertex) NULL)
     printf("    Segment origin[%d] = NULL\n", 4 + s->ssorient);
   else
-    printf("    Segment origin[%d] = x%lx  (%.12g, %.12g)\n",
+    printf("    Segment origin[%d] = x%llu  (%.12g, %.12g)\n",
            4 + s->ssorient, (unsigned long long) printvertex,
            printvertex[0], printvertex[1]);
   segdest(*s, printvertex);
   if (printvertex == (vertex) NULL)
     printf("    Segment dest  [%d] = NULL\n", 5 - s->ssorient);
   else
-    printf("    Segment dest  [%d] = x%lx  (%.12g, %.12g)\n",
+    printf("    Segment dest  [%d] = x%llu  (%.12g, %.12g)\n",
            5 - s->ssorient, (unsigned long long) printvertex,
            printvertex[0], printvertex[1]);
 }
@@ -1660,7 +1661,7 @@ void poolinit(struct memorypool *pool, int bytecount, int itemcount,
   /*   - The parameter `alignment'.                                   */
   /*   - sizeof(int *), so the stack of dead items can be maintained */
   /*       without unaligned accesses.                                */
-  if (alignment > sizeof(int *)) {
+  if ((size_t)alignment > sizeof(int *)) {
     pool->alignbytes = alignment;
   } else {
     pool->alignbytes = sizeof(int *);
@@ -2006,7 +2007,7 @@ void initializetrisubpools(struct mesh *m, struct behavior *b)
   /*   integer index can occupy the same space as the subsegment pointers  */
   /*   or attributes or area constraint or extra nodes.                    */
   if ((b->voronoi || b->neighbors) &&
-      (trisize < 6 * sizeof(triangle) + sizeof(int))) {
+      ((size_t)trisize < 6 * sizeof(triangle) + sizeof(int))) {
     trisize = 6 * sizeof(triangle) + sizeof(int);
   }
 
@@ -4488,7 +4489,8 @@ void insertsubseg(struct mesh *m, struct behavior *b, struct otri *tri,
     setmark(newsubseg, subsegmark);
     if (b->verbose > 2) {
       printf("  Inserting new ");
-      printsubseg(m, b, &newsubseg);
+      //printsubseg(m, b, &newsubseg);
+      printsubseg(m, &newsubseg);
     }
   } else {
     if (mark(newsubseg) == 0) {
@@ -4786,7 +4788,7 @@ void unflip(struct mesh *m, struct behavior *b, struct otri *flipedge)
 enum insertvertexresult insertvertex(struct mesh *m, struct behavior *b,
                                      vertex newvertex, struct otri *searchtri,
                                      struct osub *splitseg,
-                                     int segmentflaws, int triflaws)
+                                     int segmentflaws)//, int triflaws)
 {
   struct otri horiz;
   struct otri top;
@@ -5492,7 +5494,7 @@ void vertexsort(vertex *sortarray, int arraysize)
     /* Recursively sort the left subset. */
     vertexsort(sortarray, left);
   }
-  if (right < arraysize - 2) {
+  if ((arraysize >= 2 )&& (right < arraysize - 2)) {
     /* Recursively sort the right subset. */
     vertexsort(&sortarray[right + 1], arraysize - right - 1);
   }
@@ -6372,7 +6374,7 @@ void segmentintersection(struct mesh *m, struct behavior *b,
   vertex leftvertex, rightvertex;
   vertex newvertex;
   enum insertvertexresult success;
-  enum finddirectionresult collinear;
+  //enum finddirectionresult collinear;
   float ex, ey;
   float tx, ty;
   float etx, ety;
@@ -6413,7 +6415,8 @@ void segmentintersection(struct mesh *m, struct behavior *b,
            torg[0], torg[1], tdest[0], tdest[1], newvertex[0], newvertex[1]);
   }
   /* Insert the intersection vertex.  This should always succeed. */
-  success = insertvertex(m, b, newvertex, splittri, splitsubseg, 0, 0);
+  //success = insertvertex(m, b, newvertex, splittri, splitsubseg, 0, 0);
+  success = insertvertex(m, b, newvertex, splittri, splitsubseg, 0);
   if (success != SUCCESSFULVERTEX) {
     printf("Internal error in segmentintersection():\n");
     printf("  Failure to split a segment.\n");
@@ -6441,7 +6444,8 @@ void segmentintersection(struct mesh *m, struct behavior *b,
 
   /* Inserting the vertex may have caused edge flips.  We wish to rediscover */
   /*   the edge connecting endpoint1 to the new intersection vertex.         */
-  collinear = finddirection(m, b, splittri, endpoint1);
+  //collinear = finddirection(m, b, splittri, endpoint1);
+  finddirection(m, b, splittri, endpoint1);
   dest(*splittri, rightvertex);
   apex(*splittri, leftvertex);
   if ((leftvertex[0] == endpoint1[0]) && (leftvertex[1] == endpoint1[1])) {

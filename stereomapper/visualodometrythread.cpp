@@ -37,7 +37,6 @@ VisualOdometryThread::VisualOdometryThread(CalibIO *calib,QObject *parent) :
 
 VisualOdometryThread::~VisualOdometryThread()
 {
-    //delete matcher;
     delete vo;
     if (simg!=0)
     {

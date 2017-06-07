@@ -406,6 +406,8 @@ void View3D::playPoses(bool record)
 string View3D::createNewRecordDirectory()
 {
     char buffer[1024];
+    int system_status = 0;
+
     for (int32_t i=0; i<9999; i++)
     {
         sprintf(buffer,"/home/geiger/4_Projects/stereomapper/record_%04d/img_320_480_000000.png",i);
@@ -421,6 +423,10 @@ string View3D::createNewRecordDirectory()
     cout << "Creating record directory: " << buffer << endl;
     char cmd[1024];
     sprintf(cmd,"mkdir %s",buffer);
-    system(cmd);
+
+    // Do nothing. Just for resolving the warning message.
+    system_status = system(cmd);
+    if( system_status ) {};
+
     return buffer;
 }

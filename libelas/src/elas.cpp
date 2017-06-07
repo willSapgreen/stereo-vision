@@ -79,8 +79,8 @@ void Elas::process (uint8_t* I1_,uint8_t* I2_,float* D1,float* D2,const int32_t*
 #ifdef PROFILE
   timer.start("Disparity Planes");
 #endif
-  computeDisparityPlanes(p_support,tri_1,0);
-  computeDisparityPlanes(p_support,tri_2,1);
+  computeDisparityPlanes(p_support,tri_1);//,0);
+  computeDisparityPlanes(p_support,tri_2);//,1);
 
 #ifdef PROFILE
   timer.start("Grid");
@@ -234,36 +234,43 @@ void Elas::removeRedundantSupportPoints(int16_t* D_can,int32_t D_can_width,int32
   }
 }
 
-void Elas::addCornerSupportPoints(vector<support_pt> &p_support) {
-  
-  // list of border points
-  vector<support_pt> p_border;
-  p_border.push_back(support_pt(0,0,0));
-  p_border.push_back(support_pt(0,height-1,0));
-  p_border.push_back(support_pt(width-1,0,0));
-  p_border.push_back(support_pt(width-1,height-1,0));
-  
-  // find closest d
-  for (int32_t i=0; i<p_border.size(); i++) {
-    int32_t best_dist = 10000000;
-    for (int32_t j=0; j<p_support.size(); j++) {
-      int32_t du = p_border[i].u-p_support[j].u;
-      int32_t dv = p_border[i].v-p_support[j].v;
-      int32_t curr_dist = du*du+dv*dv;
-      if (curr_dist<best_dist) {
-        best_dist = curr_dist;
-        p_border[i].d = p_support[j].d;
-      }
+//==============================================================================//
+
+void Elas::addCornerSupportPoints(vector<support_pt> &p_support)
+{
+    // list of border points
+    vector<support_pt> p_border;
+    p_border.push_back(support_pt(0,0,0));
+    p_border.push_back(support_pt(0,height-1,0));
+    p_border.push_back(support_pt(width-1,0,0));
+    p_border.push_back(support_pt(width-1,height-1,0));
+
+    // find closest d
+    for (vector<support_pt>::size_type i=0; i<p_border.size(); i++)
+    {
+        int32_t best_dist = 10000000;
+        for (vector<support_pt>::size_type j=0; j<p_support.size(); j++)
+        {
+            int32_t du = p_border[i].u-p_support[j].u;
+            int32_t dv = p_border[i].v-p_support[j].v;
+            int32_t curr_dist = du*du+dv*dv;
+            if (curr_dist<best_dist)
+            {
+                best_dist = curr_dist;
+                p_border[i].d = p_support[j].d;
+            }
+        }
     }
-  }
-  
-  // for right image
-  p_border.push_back(support_pt(p_border[2].u+p_border[2].d,p_border[2].v,p_border[2].d));
-  p_border.push_back(support_pt(p_border[3].u+p_border[3].d,p_border[3].v,p_border[3].d));
-  
-  // add border points to support points
-  for (int32_t i=0; i<p_border.size(); i++)
-    p_support.push_back(p_border[i]);
+
+    // for right image
+    p_border.push_back(support_pt(p_border[2].u+p_border[2].d,p_border[2].v,p_border[2].d));
+    p_border.push_back(support_pt(p_border[3].u+p_border[3].d,p_border[3].v,p_border[3].d));
+
+    // add border points to support points
+    for (vector<support_pt>::size_type i=0; i<p_border.size(); i++)
+    {
+        p_support.push_back(p_border[i]);
+    }
 }
 
 inline int16_t Elas::computeMatchingDisparity (const int32_t &u,const int32_t &v,uint8_t* I1_desc,uint8_t* I2_desc,const bool &right_image) {
@@ -453,12 +460,12 @@ vector<Elas::triangle> Elas::computeDelaunayTriangulation (vector<support_pt> p_
   in.pointlist = (float*)malloc(in.numberofpoints*2*sizeof(float));
   k=0;
   if (!right_image) {
-    for (int32_t i=0; i<p_support.size(); i++) {
+    for (vector<support_pt>::size_type i=0; i<p_support.size(); i++) {
       in.pointlist[k++] = p_support[i].u;
       in.pointlist[k++] = p_support[i].v;
     }
   } else {
-    for (int32_t i=0; i<p_support.size(); i++) {
+    for (vector<support_pt>::size_type i=0; i<p_support.size(); i++) {
       in.pointlist[k++] = p_support[i].u-p_support[i].d;
       in.pointlist[k++] = p_support[i].v;
     }
@@ -504,159 +511,178 @@ vector<Elas::triangle> Elas::computeDelaunayTriangulation (vector<support_pt> p_
   return tri;
 }
 
-void Elas::computeDisparityPlanes (vector<support_pt> p_support,vector<triangle> &tri,int32_t right_image) {
+//==============================================================================//
 
-  // init matrices
-  Matrix A(3,3);
-  Matrix b(3,1);
-  
-  // for all triangles do
-  for (int32_t i=0; i<tri.size(); i++) {
-    
-    // get triangle corner indices
-    int32_t c1 = tri[i].c1;
-    int32_t c2 = tri[i].c2;
-    int32_t c3 = tri[i].c3;
-    
-    // compute matrix A for linear system of left triangle
-    A.val[0][0] = p_support[c1].u;
-    A.val[1][0] = p_support[c2].u;
-    A.val[2][0] = p_support[c3].u;
-    A.val[0][1] = p_support[c1].v; A.val[0][2] = 1;
-    A.val[1][1] = p_support[c2].v; A.val[1][2] = 1;
-    A.val[2][1] = p_support[c3].v; A.val[2][2] = 1;
-    
-    // compute vector b for linear system (containing the disparities)
-    b.val[0][0] = p_support[c1].d;
-    b.val[1][0] = p_support[c2].d;
-    b.val[2][0] = p_support[c3].d;
-    
-    // on success of gauss jordan elimination
-    if (b.solve(A)) {
-      
-      // grab results from b
-      tri[i].t1a = b.val[0][0];
-      tri[i].t1b = b.val[1][0];
-      tri[i].t1c = b.val[2][0];
-      
-    // otherwise: invalid
-    } else {
-      tri[i].t1a = 0;
-      tri[i].t1b = 0;
-      tri[i].t1c = 0;
-    }
+//void Elas::computeDisparityPlanes (vector<support_pt> p_support,vector<triangle> &tri,int32_t right_image)
+void Elas::computeDisparityPlanes (vector<support_pt> p_support,vector<triangle> &tri)
+{
+    // init matrices
+    Matrix A(3,3);
+    Matrix b(3,1);
 
-    // compute matrix A for linear system of right triangle
-    A.val[0][0] = p_support[c1].u-p_support[c1].d;
-    A.val[1][0] = p_support[c2].u-p_support[c2].d;
-    A.val[2][0] = p_support[c3].u-p_support[c3].d;
-    A.val[0][1] = p_support[c1].v; A.val[0][2] = 1;
-    A.val[1][1] = p_support[c2].v; A.val[1][2] = 1;
-    A.val[2][1] = p_support[c3].v; A.val[2][2] = 1;
-    
-    // compute vector b for linear system (containing the disparities)
-    b.val[0][0] = p_support[c1].d;
-    b.val[1][0] = p_support[c2].d;
-    b.val[2][0] = p_support[c3].d;
-    
-    // on success of gauss jordan elimination
-    if (b.solve(A)) {
-      
-      // grab results from b
-      tri[i].t2a = b.val[0][0];
-      tri[i].t2b = b.val[1][0];
-      tri[i].t2c = b.val[2][0];
-      
-    // otherwise: invalid
-    } else {
-      tri[i].t2a = 0;
-      tri[i].t2b = 0;
-      tri[i].t2c = 0;
-    }
-  }  
-}
+    // for all triangles do
+    for (vector<triangle>::size_type i=0; i<tri.size(); i++)
+    {
+        // get triangle corner indices
+        int32_t c1 = tri[i].c1;
+        int32_t c2 = tri[i].c2;
+        int32_t c3 = tri[i].c3;
 
-void Elas::createGrid(vector<support_pt> p_support,int32_t* disparity_grid,int32_t* grid_dims,bool right_image) {
-  
-  // get grid dimensions
-  int32_t grid_width  = grid_dims[1];
-  int32_t grid_height = grid_dims[2];
-  
-  // allocate temporary memory
-  int32_t* temp1 = (int32_t*)calloc((param.disp_max+1)*grid_height*grid_width,sizeof(int32_t));
-  int32_t* temp2 = (int32_t*)calloc((param.disp_max+1)*grid_height*grid_width,sizeof(int32_t));
-  
-  // for all support points do
-  for (int32_t i=0; i<p_support.size(); i++) {
-    
-    // compute disparity range to fill for this support point
-    int32_t x_curr = p_support[i].u;
-    int32_t y_curr = p_support[i].v;
-    int32_t d_curr = p_support[i].d;
-    int32_t d_min  = max(d_curr-1,0);
-    int32_t d_max  = min(d_curr+1,param.disp_max);
-    
-    // fill disparity grid helper
-    for (int32_t d=d_min; d<=d_max; d++) {
-      int32_t x;
-      if (!right_image)
-        x = floor((float)(x_curr/param.grid_size));
-      else
-        x = floor((float)(x_curr-d_curr)/(float)param.grid_size);
-      int32_t y = floor((float)y_curr/(float)param.grid_size);
-      
-      // point may potentially lay outside (corner points)
-      if (x>=0 && x<grid_width &&y>=0 && y<grid_height) {
-        int32_t addr = getAddressOffsetGrid(x,y,d,grid_width,param.disp_max+1);
-        *(temp1+addr) = 1;
-      }
-    }
-  }
-  
-  // diffusion pointers
-  const int32_t* tl = temp1 + (0*grid_width+0)*(param.disp_max+1);
-  const int32_t* tc = temp1 + (0*grid_width+1)*(param.disp_max+1);
-  const int32_t* tr = temp1 + (0*grid_width+2)*(param.disp_max+1);
-  const int32_t* cl = temp1 + (1*grid_width+0)*(param.disp_max+1);
-  const int32_t* cc = temp1 + (1*grid_width+1)*(param.disp_max+1);
-  const int32_t* cr = temp1 + (1*grid_width+2)*(param.disp_max+1);
-  const int32_t* bl = temp1 + (2*grid_width+0)*(param.disp_max+1);
-  const int32_t* bc = temp1 + (2*grid_width+1)*(param.disp_max+1);
-  const int32_t* br = temp1 + (2*grid_width+2)*(param.disp_max+1);
-  
-  int32_t* result    = temp2 + (1*grid_width+1)*(param.disp_max+1); 
-  int32_t* end_input = temp1 + grid_width*grid_height*(param.disp_max+1);
-  
-  // diffuse temporary grid
-  for( ; br != end_input; tl++, tc++, tr++, cl++, cc++, cr++, bl++, bc++, br++, result++ )
-    *result = *tl | *tc | *tr | *cl | *cc | *cr | *bl | *bc | *br;
-  
-  // for all grid positions create disparity grid
-  for (int32_t x=0; x<grid_width; x++) {
-    for (int32_t y=0; y<grid_height; y++) {
-        
-      // start with second value (first is reserved for count)
-      int32_t curr_ind = 1;
-      
-      // for all disparities do
-      for (int32_t d=0; d<=param.disp_max; d++) {
+        // compute matrix A for linear system of left triangle
+        A.val[0][0] = p_support[c1].u;
+        A.val[1][0] = p_support[c2].u;
+        A.val[2][0] = p_support[c3].u;
+        A.val[0][1] = p_support[c1].v; A.val[0][2] = 1;
+        A.val[1][1] = p_support[c2].v; A.val[1][2] = 1;
+        A.val[2][1] = p_support[c3].v; A.val[2][2] = 1;
 
-        // if yes => add this disparity to current cell
-        if (*(temp2+getAddressOffsetGrid(x,y,d,grid_width,param.disp_max+1))>0) {
-          *(disparity_grid+getAddressOffsetGrid(x,y,curr_ind,grid_width,param.disp_max+2))=d;
-          curr_ind++;
+        // compute vector b for linear system (containing the disparities)
+        b.val[0][0] = p_support[c1].d;
+        b.val[1][0] = p_support[c2].d;
+        b.val[2][0] = p_support[c3].d;
+
+        // on success of gauss jordan elimination
+        if (b.solve(A))
+        {
+            // grab results from b
+            tri[i].t1a = b.val[0][0];
+            tri[i].t1b = b.val[1][0];
+            tri[i].t1c = b.val[2][0];
         }
-      }
-      
-      // finally set number of indices
-      *(disparity_grid+getAddressOffsetGrid(x,y,0,grid_width,param.disp_max+2))=curr_ind-1;
+        // otherwise: invalid
+        else
+        {
+            tri[i].t1a = 0;
+            tri[i].t1b = 0;
+            tri[i].t1c = 0;
+        }
+
+        // compute matrix A for linear system of right triangle
+        A.val[0][0] = p_support[c1].u-p_support[c1].d;
+        A.val[1][0] = p_support[c2].u-p_support[c2].d;
+        A.val[2][0] = p_support[c3].u-p_support[c3].d;
+        A.val[0][1] = p_support[c1].v; A.val[0][2] = 1;
+        A.val[1][1] = p_support[c2].v; A.val[1][2] = 1;
+        A.val[2][1] = p_support[c3].v; A.val[2][2] = 1;
+
+        // compute vector b for linear system (containing the disparities)
+        b.val[0][0] = p_support[c1].d;
+        b.val[1][0] = p_support[c2].d;
+        b.val[2][0] = p_support[c3].d;
+
+        // on success of gauss jordan elimination
+        if (b.solve(A))
+        {
+            // grab results from b
+            tri[i].t2a = b.val[0][0];
+            tri[i].t2b = b.val[1][0];
+            tri[i].t2c = b.val[2][0];
+        }
+        // otherwise: invalid
+        else
+        {
+            tri[i].t2a = 0;
+            tri[i].t2b = 0;
+            tri[i].t2c = 0;
+        }
     }
-  }
-  
-  // release temporary memory
-  free(temp1);
-  free(temp2);
 }
+
+//==============================================================================//
+
+void Elas::createGrid(vector<support_pt> p_support,int32_t* disparity_grid,int32_t* grid_dims,bool right_image)
+{
+    // get grid dimensions
+    int32_t grid_width  = grid_dims[1];
+    int32_t grid_height = grid_dims[2];
+
+    // allocate temporary memory
+    int32_t* temp1 = (int32_t*)calloc((param.disp_max+1)*grid_height*grid_width,sizeof(int32_t));
+    int32_t* temp2 = (int32_t*)calloc((param.disp_max+1)*grid_height*grid_width,sizeof(int32_t));
+
+    // for all support points do
+    for (vector<support_pt>::size_type i=0; i<p_support.size(); i++)
+    {
+        // compute disparity range to fill for this support point
+        int32_t x_curr = p_support[i].u;
+        int32_t y_curr = p_support[i].v;
+        int32_t d_curr = p_support[i].d;
+        int32_t d_min  = max(d_curr-1,0);
+        int32_t d_max  = min(d_curr+1,param.disp_max);
+
+        // fill disparity grid helper
+        for (int32_t d=d_min; d<=d_max; d++)
+        {
+            int32_t x;
+            if (!right_image)
+            {
+                x = floor((float)(x_curr/param.grid_size));
+            }
+            else
+            {
+                x = floor((float)(x_curr-d_curr)/(float)param.grid_size);
+            }
+            int32_t y = floor((float)y_curr/(float)param.grid_size);
+
+            // point may potentially lay outside (corner points)
+            if (x>=0 && x<grid_width &&y>=0 && y<grid_height)
+            {
+                int32_t addr = getAddressOffsetGrid(x,y,d,grid_width,param.disp_max+1);
+                *(temp1+addr) = 1;
+            }
+        }
+    }
+
+    // diffusion pointers
+    const int32_t* tl = temp1 + (0*grid_width+0)*(param.disp_max+1);
+    const int32_t* tc = temp1 + (0*grid_width+1)*(param.disp_max+1);
+    const int32_t* tr = temp1 + (0*grid_width+2)*(param.disp_max+1);
+    const int32_t* cl = temp1 + (1*grid_width+0)*(param.disp_max+1);
+    const int32_t* cc = temp1 + (1*grid_width+1)*(param.disp_max+1);
+    const int32_t* cr = temp1 + (1*grid_width+2)*(param.disp_max+1);
+    const int32_t* bl = temp1 + (2*grid_width+0)*(param.disp_max+1);
+    const int32_t* bc = temp1 + (2*grid_width+1)*(param.disp_max+1);
+    const int32_t* br = temp1 + (2*grid_width+2)*(param.disp_max+1);
+
+    int32_t* result    = temp2 + (1*grid_width+1)*(param.disp_max+1);
+    int32_t* end_input = temp1 + grid_width*grid_height*(param.disp_max+1);
+
+    // diffuse temporary grid
+    for( ; br != end_input; tl++, tc++, tr++, cl++, cc++, cr++, bl++, bc++, br++, result++ )
+    {
+        *result = *tl | *tc | *tr | *cl | *cc | *cr | *bl | *bc | *br;
+    }
+
+    // for all grid positions create disparity grid
+    for (int32_t x=0; x<grid_width; x++)
+    {
+        for (int32_t y=0; y<grid_height; y++)
+        {
+            // start with second value (first is reserved for count)
+            int32_t curr_ind = 1;
+
+            // for all disparities do
+            for (int32_t d=0; d<=param.disp_max; d++)
+            {
+                // if yes => add this disparity to current cell
+                if (*(temp2+getAddressOffsetGrid(x,y,d,grid_width,param.disp_max+1))>0)
+                {
+                    *(disparity_grid+getAddressOffsetGrid(x,y,curr_ind,grid_width,param.disp_max+2))=d;
+                    curr_ind++;
+                }
+            }
+
+            // finally set number of indices
+            *(disparity_grid+getAddressOffsetGrid(x,y,0,grid_width,param.disp_max+2))=curr_ind-1;
+        }
+    }
+
+    // release temporary memory
+    free(temp1);
+    free(temp2);
+}
+
+//==============================================================================//
 
 inline void Elas::updatePosteriorMinimum(__m128i* I2_block_addr,const int32_t &d,const int32_t &w,
                                          const __m128i &xmm1,__m128i &xmm2,int32_t &val,int32_t &min_val,int32_t &min_d) {
@@ -779,132 +805,165 @@ inline void Elas::findMatch(int32_t &u,int32_t &v,float &plane_a,float &plane_b,
   else          *(D+d_addr) = -1;    // invalid disparity
 }
 
+//==============================================================================//
+
 // TODO: %2 => more elegantly
 void Elas::computeDisparity(vector<support_pt> p_support,vector<triangle> tri,int32_t* disparity_grid,int32_t *grid_dims,
-                            uint8_t* I1_desc,uint8_t* I2_desc,bool right_image,float* D) {
+                            uint8_t* I1_desc,uint8_t* I2_desc,bool right_image,float* D)
+{
+    // number of disparities
+    const int32_t disp_num  = grid_dims[0]-1;
 
-  // number of disparities
-  const int32_t disp_num  = grid_dims[0]-1;
-  
-  // descriptor window_size
-  int32_t window_size = 2;
-  
-  // init disparity image to -10
-  if (param.subsampling) {
-    for (int32_t i=0; i<(width/2)*(height/2); i++)
-      *(D+i) = -10;
-  } else {
-    for (int32_t i=0; i<width*height; i++)
-      *(D+i) = -10;
-  }
-  
-  // pre-compute prior 
-  float two_sigma_squared = 2*param.sigma*param.sigma;
-  int32_t* P = new int32_t[disp_num];
-  for (int32_t delta_d=0; delta_d<disp_num; delta_d++)
-    P[delta_d] = (int32_t)((-log(param.gamma+exp(-delta_d*delta_d/two_sigma_squared))+log(param.gamma))/param.beta);
-  int32_t plane_radius = (int32_t)max((float)ceil(param.sigma*param.sradius),(float)2.0);
+    // descriptor window_size
+    //int32_t window_size = 2;
 
-  // loop variables
-  int32_t c1, c2, c3;
-  float plane_a,plane_b,plane_c,plane_d;
-  
-  // for all triangles do
-  for (uint32_t i=0; i<tri.size(); i++) {
-    
-    // get plane parameters
-    uint32_t p_i = i*3;
-    if (!right_image) {
-      plane_a = tri[i].t1a;
-      plane_b = tri[i].t1b;
-      plane_c = tri[i].t1c;
-      plane_d = tri[i].t2a;
-    } else {
-      plane_a = tri[i].t2a;
-      plane_b = tri[i].t2b;
-      plane_c = tri[i].t2c;
-      plane_d = tri[i].t1a;
-    }
-    
-    // triangle corners
-    c1 = tri[i].c1;
-    c2 = tri[i].c2;
-    c3 = tri[i].c3;
-
-    // sort triangle corners wrt. u (ascending)    
-    float tri_u[3];
-    if (!right_image) {
-      tri_u[0] = p_support[c1].u;
-      tri_u[1] = p_support[c2].u;
-      tri_u[2] = p_support[c3].u;
-    } else {
-      tri_u[0] = p_support[c1].u-p_support[c1].d;
-      tri_u[1] = p_support[c2].u-p_support[c2].d;
-      tri_u[2] = p_support[c3].u-p_support[c3].d;
-    }
-    float tri_v[3] = {p_support[c1].v,p_support[c2].v,p_support[c3].v};
-    
-    for (uint32_t j=0; j<3; j++) {
-      for (uint32_t k=0; k<j; k++) {
-        if (tri_u[k]>tri_u[j]) {
-          float tri_u_temp = tri_u[j]; tri_u[j] = tri_u[k]; tri_u[k] = tri_u_temp;
-          float tri_v_temp = tri_v[j]; tri_v[j] = tri_v[k]; tri_v[k] = tri_v_temp;
+    // init disparity image to -10
+    if (param.subsampling)
+    {
+        for (int32_t i=0; i<(width/2)*(height/2); i++)
+        {
+            *(D+i) = -10;
         }
-      }
     }
-    
-    // rename corners
-    float A_u = tri_u[0]; float A_v = tri_v[0];
-    float B_u = tri_u[1]; float B_v = tri_v[1];
-    float C_u = tri_u[2]; float C_v = tri_v[2];
-    
-    // compute straight lines connecting triangle corners
-    float AB_a = 0; float AC_a = 0; float BC_a = 0;
-    if ((int32_t)(A_u)!=(int32_t)(B_u)) AB_a = (A_v-B_v)/(A_u-B_u);
-    if ((int32_t)(A_u)!=(int32_t)(C_u)) AC_a = (A_v-C_v)/(A_u-C_u);
-    if ((int32_t)(B_u)!=(int32_t)(C_u)) BC_a = (B_v-C_v)/(B_u-C_u);
-    float AB_b = A_v-AB_a*A_u;
-    float AC_b = A_v-AC_a*A_u;
-    float BC_b = B_v-BC_a*B_u;
-    
-    // a plane is only valid if itself and its projection
-    // into the other image is not too much slanted
-    bool valid = fabs(plane_a)<0.7 && fabs(plane_d)<0.7;
-        
-    // first part (triangle corner A->B)
-    if ((int32_t)(A_u)!=(int32_t)(B_u)) {
-      for (int32_t u=max((int32_t)A_u,0); u<min((int32_t)B_u,width); u++){
-        if (!param.subsampling || u%2==0) {
-          int32_t v_1 = (uint32_t)(AC_a*(float)u+AC_b);
-          int32_t v_2 = (uint32_t)(AB_a*(float)u+AB_b);
-          for (int32_t v=min(v_1,v_2); v<max(v_1,v_2); v++)
-            if (!param.subsampling || v%2==0) {
-              findMatch(u,v,plane_a,plane_b,plane_c,disparity_grid,grid_dims,
-                        I1_desc,I2_desc,P,plane_radius,valid,right_image,D);
+    else
+    {
+        for (int32_t i=0; i<width*height; i++)
+        {
+            *(D+i) = -10;
+        }
+    }
+
+    // pre-compute prior
+    float two_sigma_squared = 2*param.sigma*param.sigma;
+    int32_t* P = new int32_t[disp_num];
+    for (int32_t delta_d=0; delta_d<disp_num; delta_d++)
+    {
+        P[delta_d] = (int32_t)((-log(param.gamma+exp(-delta_d*delta_d/two_sigma_squared))+log(param.gamma))/param.beta);
+    }
+    int32_t plane_radius = (int32_t)max((float)ceil(param.sigma*param.sradius),(float)2.0);
+
+    // loop variables
+    int32_t c1, c2, c3;
+    float plane_a,plane_b,plane_c,plane_d;
+
+    // for all triangles do
+    for (uint32_t i=0; i<tri.size(); i++)
+    {
+        // get plane parameters
+        //uint32_t p_i = i*3;
+        if (!right_image)
+        {
+            plane_a = tri[i].t1a;
+            plane_b = tri[i].t1b;
+            plane_c = tri[i].t1c;
+            plane_d = tri[i].t2a;
+        }
+        else
+        {
+            plane_a = tri[i].t2a;
+            plane_b = tri[i].t2b;
+            plane_c = tri[i].t2c;
+            plane_d = tri[i].t1a;
+        }
+
+        // triangle corners
+        c1 = tri[i].c1;
+        c2 = tri[i].c2;
+        c3 = tri[i].c3;
+
+        // sort triangle corners wrt. u (ascending)
+        float tri_u[3];
+        if (!right_image)
+        {
+            tri_u[0] = p_support[c1].u;
+            tri_u[1] = p_support[c2].u;
+            tri_u[2] = p_support[c3].u;
+        }
+        else
+        {
+            tri_u[0] = p_support[c1].u-p_support[c1].d;
+            tri_u[1] = p_support[c2].u-p_support[c2].d;
+            tri_u[2] = p_support[c3].u-p_support[c3].d;
+        }
+        float tri_v[3] = {(float)p_support[c1].v, (float)p_support[c2].v, (float)p_support[c3].v};
+
+        for (uint32_t j=0; j<3; j++)
+        {
+            for (uint32_t k=0; k<j; k++)
+            {
+                if (tri_u[k]>tri_u[j])
+                {
+                    float tri_u_temp = tri_u[j]; tri_u[j] = tri_u[k]; tri_u[k] = tri_u_temp;
+                    float tri_v_temp = tri_v[j]; tri_v[j] = tri_v[k]; tri_v[k] = tri_v_temp;
+                }
             }
         }
-      }
-    }
 
-    // second part (triangle corner B->C)
-    if ((int32_t)(B_u)!=(int32_t)(C_u)) {
-      for (int32_t u=max((int32_t)B_u,0); u<min((int32_t)C_u,width); u++){
-        if (!param.subsampling || u%2==0) {
-          int32_t v_1 = (uint32_t)(AC_a*(float)u+AC_b);
-          int32_t v_2 = (uint32_t)(BC_a*(float)u+BC_b);
-          for (int32_t v=min(v_1,v_2); v<max(v_1,v_2); v++)
-            if (!param.subsampling || v%2==0) {
-              findMatch(u,v,plane_a,plane_b,plane_c,disparity_grid,grid_dims,
-                        I1_desc,I2_desc,P,plane_radius,valid,right_image,D);
+        // rename corners
+        float A_u = tri_u[0]; float A_v = tri_v[0];
+        float B_u = tri_u[1]; float B_v = tri_v[1];
+        float C_u = tri_u[2]; float C_v = tri_v[2];
+
+        // compute straight lines connecting triangle corners
+        float AB_a = 0; float AC_a = 0; float BC_a = 0;
+        if ((int32_t)(A_u)!=(int32_t)(B_u)) AB_a = (A_v-B_v)/(A_u-B_u);
+        if ((int32_t)(A_u)!=(int32_t)(C_u)) AC_a = (A_v-C_v)/(A_u-C_u);
+        if ((int32_t)(B_u)!=(int32_t)(C_u)) BC_a = (B_v-C_v)/(B_u-C_u);
+        float AB_b = A_v-AB_a*A_u;
+        float AC_b = A_v-AC_a*A_u;
+        float BC_b = B_v-BC_a*B_u;
+
+        // a plane is only valid if itself and its projection
+        // into the other image is not too much slanted
+        bool valid = fabs(plane_a)<0.7 && fabs(plane_d)<0.7;
+
+        // first part (triangle corner A->B)
+        if ((int32_t)(A_u)!=(int32_t)(B_u))
+        {
+            for (int32_t u=max((int32_t)A_u,0); u<min((int32_t)B_u,width); u++)
+            {
+                if (!param.subsampling || u%2==0)
+                {
+                    int32_t v_1 = (uint32_t)(AC_a*(float)u+AC_b);
+                    int32_t v_2 = (uint32_t)(AB_a*(float)u+AB_b);
+                    for (int32_t v=min(v_1,v_2); v<max(v_1,v_2); v++)
+                    {
+                        if (!param.subsampling || v%2==0)
+                        {
+                            findMatch(u,v,plane_a,plane_b,plane_c,disparity_grid,grid_dims,
+                                      I1_desc,I2_desc,P,plane_radius,valid,right_image,D);
+                        }
+                    }
+                }
             }
         }
-      }
-    }
-    
-  }
 
-  delete[] P;
+        // second part (triangle corner B->C)
+        if ((int32_t)(B_u)!=(int32_t)(C_u))
+        {
+            for (int32_t u=max((int32_t)B_u,0); u<min((int32_t)C_u,width); u++)
+            {
+                if (!param.subsampling || u%2==0)
+                {
+                    int32_t v_1 = (uint32_t)(AC_a*(float)u+AC_b);
+                    int32_t v_2 = (uint32_t)(BC_a*(float)u+BC_b);
+                    for (int32_t v=min(v_1,v_2); v<max(v_1,v_2); v++)
+                    {
+                        if (!param.subsampling || v%2==0)
+                        {
+                            findMatch(u,v,plane_a,plane_b,plane_c,disparity_grid,grid_dims,
+                                      I1_desc,I2_desc,P,plane_radius,valid,right_image,D);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    delete[] P;
 }
+
+//==============================================================================//
 
 void Elas::leftRightConsistencyCheck(float* D1,float* D2) {
   

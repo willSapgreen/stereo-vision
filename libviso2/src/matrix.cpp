@@ -434,6 +434,8 @@ bool Matrix::solve (const Matrix &M, FLOAT eps) {
   // loop variables
   int32_t i, icol, irow, j, k, l, ll;
   FLOAT big, dum, pivinv, temp;
+  icol = 0;
+  irow = 0;
   
   // initialize pivots to zero
   for (j=0;j<m;j++) ipiv[j]=0;
@@ -511,7 +513,8 @@ bool Matrix::solve (const Matrix &M, FLOAT eps) {
 // or odd, respectively. This routine is used in combination with lubksb to solve linear equations
 // or invert a matrix.
 
-bool Matrix::lu(int32_t *idx, FLOAT &d, FLOAT eps) {
+bool Matrix::lu(int32_t *idx, FLOAT &d)//, FLOAT eps)
+{
   
   if (m != n) {
     cerr << "ERROR: Trying to LU decompose a matrix of size (" << m << "x" << n << ")" << endl;
@@ -519,6 +522,7 @@ bool Matrix::lu(int32_t *idx, FLOAT &d, FLOAT eps) {
   }
   
   int32_t i,imax,j,k;
+  imax = 0;
   FLOAT   big,dum,sum,temp;
   FLOAT* vv = (FLOAT*)malloc(n*sizeof(FLOAT)); // vv stores the implicit scaling of each row.
   d = 1.0;

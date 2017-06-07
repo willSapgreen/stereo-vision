@@ -68,6 +68,8 @@ MainDialog::~MainDialog()
 string MainDialog::createNewOutputDirectory()
 {
     char buffer[1024];
+    int system_status = 0;
+
     for (int32_t i=0; i<9999; i++)
     {
         sprintf(buffer,"output_%04d/I1_000000.png",i);
@@ -83,7 +85,11 @@ string MainDialog::createNewOutputDirectory()
     cout << "Creating output directory: " << buffer << endl;
     char cmd[1024];
     sprintf(cmd,"mkdir %s",buffer);
-    system(cmd);
+
+    // Do nothing. Just for resolving the warning message.
+    system_status = system(cmd);
+    if( system_status ) {};
+
     return buffer;
 }
 

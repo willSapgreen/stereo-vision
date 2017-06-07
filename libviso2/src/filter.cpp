@@ -179,7 +179,7 @@ namespace filter {
       const int16_t* i1 = in+1;
       const int16_t* i2 = in+2;
       uint8_t* result   = out + 1;
-      const int16_t* const end_input = in + w*h;
+      //const int16_t* const end_input = in + w*h;
       const size_t blocked_loops = (w*h-2)/16;
       __m128i offs = _mm_set1_epi16( 128 );
       for( size_t i=0; i != blocked_loops; i++ ) {
