@@ -44,7 +44,7 @@ bool VisualOdometryStereo::process (uint8_t *I1,uint8_t *I2,int32_t* dims,bool r
     matcher->pushBack(I1,I2,dims,replace);
 
     // bootstrap motion estimate if invalid
-    if(~Tr_valid)
+    if(!Tr_valid)
     {
         matcher->matchFeatures(2);
         matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);

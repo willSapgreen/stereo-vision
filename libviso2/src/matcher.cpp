@@ -92,93 +92,114 @@ Matcher::~Matcher() {
   if (I2c_dv_full)  _mm_free(I2c_dv_full);
 }
 
-void Matcher::pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace) {
+//==============================================================================//
 
-  // image dimensions
-  int32_t width  = dims[0];
-  int32_t height = dims[1];
-  int32_t bpl    = dims[2];
+void Matcher::pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace)
+{
+    // image dimensions
+    int32_t width  = dims[0];
+    int32_t height = dims[1];
+    int32_t bpl    = dims[2];
 
-  // sanity check
-  if (width<=0 || height<=0 || bpl<width || I1==0) {
-    cerr << "ERROR: Image dimension mismatch!" << endl;
-    return;
-  }
-
-  if (replace) {
-    if (I1c)         _mm_free(I1c);
-    if (I2c)         _mm_free(I2c);
-    if (m1c1)        _mm_free(m1c1);
-    if (m1c2)        _mm_free(m1c2);
-    if (I1c_du)      _mm_free(I1c_du);
-    if (I1c_dv)      _mm_free(I1c_dv);
-    if (I1c_du_full) _mm_free(I1c_du_full);
-    if (I1c_dv_full) _mm_free(I1c_dv_full);
-    if (m2c1)        _mm_free(m2c1);
-    if (m2c2)        _mm_free(m2c2);
-    if (I2c_du)      _mm_free(I2c_du);
-    if (I2c_dv)      _mm_free(I2c_dv);
-    if (I2c_du_full) _mm_free(I2c_du_full);
-    if (I2c_dv_full) _mm_free(I2c_dv_full);
-  } else {
-    if (I1p)         _mm_free(I1p);
-    if (I2p)         _mm_free(I2p);
-    if (m1p1)        _mm_free(m1p1);
-    if (m1p2)        _mm_free(m1p2);
-    if (I1p_du)      _mm_free(I1p_du);
-    if (I1p_dv)      _mm_free(I1p_dv);
-    if (I1p_du_full) _mm_free(I1p_du_full);
-    if (I1p_dv_full) _mm_free(I1p_dv_full);
-    if (m2p1)        _mm_free(m2p1);
-    if (m2p2)        _mm_free(m2p2);
-    if (I2p_du)      _mm_free(I2p_du);
-    if (I2p_dv)      _mm_free(I2p_dv);
-    if (I2p_du_full) _mm_free(I2p_du_full);
-    if (I2p_dv_full) _mm_free(I2p_dv_full);
-    m1p1 = m1c1; n1p1 = n1c1;
-    m1p2 = m1c2; n1p2 = n1c2;
-    m2p1 = m2c1; n2p1 = n2c1;
-    m2p2 = m2c2; n2p2 = n2c2;
-    I1p         = I1c;
-    I2p         = I2c;
-    I1p_du      = I1c_du;
-    I1p_dv      = I1c_dv;
-    I1p_du_full = I1c_du_full;
-    I1p_dv_full = I1c_dv_full;
-    I2p_du      = I2c_du;
-    I2p_dv      = I2c_dv;
-    I2p_du_full = I2c_du_full;
-    I2p_dv_full = I2c_dv_full;
-    dims_p[0]   = dims_c[0];
-    dims_p[1]   = dims_c[1];
-    dims_p[2]   = dims_c[2];
-  }
-
-  // set new dims (bytes per line must be multiple of 16)
-  dims_c[0] = width;
-  dims_c[1] = height;
-  dims_c[2] = width + 15-(width-1)%16;
-
-  // copy images to byte aligned memory
-  I1c = (uint8_t*)_mm_malloc(dims_c[2]*dims_c[1]*sizeof(uint8_t),16);
-  I2c = (uint8_t*)_mm_malloc(dims_c[2]*dims_c[1]*sizeof(uint8_t),16);
-  if (dims_c[2]==bpl) {
-    memcpy(I1c,I1,dims_c[2]*dims_c[1]*sizeof(uint8_t));
-    if (I2!=0)
-      memcpy(I2c,I2,dims_c[2]*dims_c[1]*sizeof(uint8_t));
-  } else {
-    for (int32_t v=0; v<height; v++) {
-      memcpy(I1c+v*dims_c[2],I1+v*bpl,dims_c[0]*sizeof(uint8_t));
-      if (I2!=0)
-        memcpy(I2c+v*dims_c[2],I2+v*bpl,dims_c[0]*sizeof(uint8_t));
+    // sanity check
+    if (width<=0 || height<=0 || bpl<width || I1==0)
+    {
+        cerr << "ERROR: Image dimension mismatch!" << endl;
+        return;
     }
-  }
 
-  // compute new features for current frame
-  computeFeatures(I1c,dims_c,m1c1,n1c1,m1c2,n1c2,I1c_du,I1c_dv,I1c_du_full,I1c_dv_full);
-  if (I2!=0)
-    computeFeatures(I2c,dims_c,m2c1,n2c1,m2c2,n2c2,I2c_du,I2c_dv,I2c_du_full,I2c_dv_full);
+    // free the current one.
+    if (replace)
+    {
+        if (I1c)         _mm_free(I1c);
+        if (I2c)         _mm_free(I2c);
+        if (m1c1)        _mm_free(m1c1);
+        if (m1c2)        _mm_free(m1c2);
+        if (I1c_du)      _mm_free(I1c_du);
+        if (I1c_dv)      _mm_free(I1c_dv);
+        if (I1c_du_full) _mm_free(I1c_du_full);
+        if (I1c_dv_full) _mm_free(I1c_dv_full);
+        if (m2c1)        _mm_free(m2c1);
+        if (m2c2)        _mm_free(m2c2);
+        if (I2c_du)      _mm_free(I2c_du);
+        if (I2c_dv)      _mm_free(I2c_dv);
+        if (I2c_du_full) _mm_free(I2c_du_full);
+        if (I2c_dv_full) _mm_free(I2c_dv_full);
+    }
+    // free and update the previous one.
+    else
+    {
+        if (I1p)         _mm_free(I1p);
+        if (I2p)         _mm_free(I2p);
+        if (m1p1)        _mm_free(m1p1);
+        if (m1p2)        _mm_free(m1p2);
+        if (I1p_du)      _mm_free(I1p_du);
+        if (I1p_dv)      _mm_free(I1p_dv);
+        if (I1p_du_full) _mm_free(I1p_du_full);
+        if (I1p_dv_full) _mm_free(I1p_dv_full);
+        if (m2p1)        _mm_free(m2p1);
+        if (m2p2)        _mm_free(m2p2);
+        if (I2p_du)      _mm_free(I2p_du);
+        if (I2p_dv)      _mm_free(I2p_dv);
+        if (I2p_du_full) _mm_free(I2p_du_full);
+        if (I2p_dv_full) _mm_free(I2p_dv_full);
+        m1p1 = m1c1; n1p1 = n1c1;
+        m1p2 = m1c2; n1p2 = n1c2;
+        m2p1 = m2c1; n2p1 = n2c1;
+        m2p2 = m2c2; n2p2 = n2c2;
+        I1p         = I1c;
+        I2p         = I2c;
+        I1p_du      = I1c_du;
+        I1p_dv      = I1c_dv;
+        I1p_du_full = I1c_du_full;
+        I1p_dv_full = I1c_dv_full;
+        I2p_du      = I2c_du;
+        I2p_dv      = I2c_dv;
+        I2p_du_full = I2c_du_full;
+        I2p_dv_full = I2c_dv_full;
+        dims_p[0]   = dims_c[0];
+        dims_p[1]   = dims_c[1];
+        dims_p[2]   = dims_c[2];
+    }
+
+    // set new dims (bytes per line must be multiple of 16)
+    dims_c[0] = width;
+    dims_c[1] = height;
+    dims_c[2] = width + 16 - (width) % 16;// width + 15-(width-1)%16;
+
+    // copy images to byte aligned memory
+    I1c = (uint8_t*)_mm_malloc(dims_c[2]*dims_c[1]*sizeof(uint8_t),16);
+    I2c = (uint8_t*)_mm_malloc(dims_c[2]*dims_c[1]*sizeof(uint8_t),16);
+    if (dims_c[2]==bpl)
+    {
+        memcpy(I1c,I1,dims_c[2]*dims_c[1]*sizeof(uint8_t));
+        if (I2!=0)
+        {
+            memcpy(I2c,I2,dims_c[2]*dims_c[1]*sizeof(uint8_t));
+        }
+    }
+    else
+    {
+        for (int32_t v=0; v<height; v++)
+        {
+            memcpy(I1c+v*dims_c[2],I1+v*bpl,dims_c[0]*sizeof(uint8_t));
+            if (I2!=0)
+            {
+                memcpy(I2c+v*dims_c[2],I2+v*bpl,dims_c[0]*sizeof(uint8_t));
+            }
+        }
+    }
+
+    // compute new features for current frame
+    computeFeatures(I1c,dims_c,m1c1,n1c1,m1c2,n1c2,I1c_du,I1c_dv,I1c_du_full,I1c_dv_full);
+
+    if (I2!=0)
+    {
+        computeFeatures(I2c,dims_c,m2c1,n2c1,m2c2,n2c2,I2c_du,I2c_dv,I2c_du_full,I2c_dv_full);
+    }
 }
+
+//==============================================================================//
 
 void Matcher::matchFeatures(int32_t method, Matrix *Tr_delta) {
   
@@ -646,89 +667,92 @@ uint8_t* Matcher::createHalfResolutionImage(uint8_t *I,const int32_t* dims) {
   return I_half;
 }
 
-void Matcher::computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int32_t &num1,int32_t* &max2,int32_t &num2,uint8_t* &I_du,uint8_t* &I_dv,uint8_t* &I_du_full,uint8_t* &I_dv_full) {
-  
-  int16_t *I_f1;
-  int16_t *I_f2;
-  
-  int32_t dims_matching[3];
-  memcpy(dims_matching,dims,3*sizeof(int32_t));
-  
-  // allocate memory for sobel images and filter images
-  if (!param.half_resolution) {
-    I_du = (uint8_t*)_mm_malloc(dims[2]*dims[1]*sizeof(uint8_t*),16);
-    I_dv = (uint8_t*)_mm_malloc(dims[2]*dims[1]*sizeof(uint8_t*),16);
-    I_f1 = (int16_t*)_mm_malloc(dims[2]*dims[1]*sizeof(int16_t),16);
-    I_f2 = (int16_t*)_mm_malloc(dims[2]*dims[1]*sizeof(int16_t),16);
-    filter::sobel5x5(I,I_du,I_dv,dims[2],dims[1]);
-    filter::blob5x5(I,I_f1,dims[2],dims[1]);
-    filter::checkerboard5x5(I,I_f2,dims[2],dims[1]);
-  } else {
-    uint8_t* I_matching = createHalfResolutionImage(I,dims);
-    getHalfResolutionDimensions(dims,dims_matching);
-    I_du      = (uint8_t*)_mm_malloc(dims_matching[2]*dims_matching[1]*sizeof(uint8_t*),16);
-    I_dv      = (uint8_t*)_mm_malloc(dims_matching[2]*dims_matching[1]*sizeof(uint8_t*),16);
-    I_f1      = (int16_t*)_mm_malloc(dims_matching[2]*dims_matching[1]*sizeof(int16_t),16);
-    I_f2      = (int16_t*)_mm_malloc(dims_matching[2]*dims_matching[1]*sizeof(int16_t),16);
-    I_du_full = (uint8_t*)_mm_malloc(dims[2]*dims[1]*sizeof(uint8_t*),16);
-    I_dv_full = (uint8_t*)_mm_malloc(dims[2]*dims[1]*sizeof(uint8_t*),16);
-    filter::sobel5x5(I_matching,I_du,I_dv,dims_matching[2],dims_matching[1]);
-    filter::sobel5x5(I,I_du_full,I_dv_full,dims[2],dims[1]);
-    filter::blob5x5(I_matching,I_f1,dims_matching[2],dims_matching[1]);
-    filter::checkerboard5x5(I_matching,I_f2,dims_matching[2],dims_matching[1]);
-    _mm_free(I_matching);
-  }
-  
-  // extract sparse maxima (1st pass) via non-maximum suppression
-  vector<Matcher::maximum> maxima1;
-  if (param.multi_stage) {
-    int32_t nms_n_sparse = param.nms_n*3;
-    if (nms_n_sparse>10)
-      nms_n_sparse = max(param.nms_n,10);
-    nonMaximumSuppression(I_f1,I_f2,dims_matching,maxima1,nms_n_sparse);
-    computeDescriptors(I_du,I_dv,dims_matching[2],maxima1);
-  }
-  
-  // extract dense maxima (2nd pass) via non-maximum suppression
-  vector<Matcher::maximum> maxima2;
-  nonMaximumSuppression(I_f1,I_f2,dims_matching,maxima2,param.nms_n);
-  computeDescriptors(I_du,I_dv,dims_matching[2],maxima2);
+//==============================================================================//
 
-  // release filter images
-  _mm_free(I_f1);
-  _mm_free(I_f2);  
-  
-  // get number of interest points and init maxima pointer to NULL
-  num1 = maxima1.size();
-  num2 = maxima2.size();
-  max1 = 0;
-  max2 = 0;
-  
-  int32_t s = 1;
-  if (param.half_resolution)
-    s = 2;
+void Matcher::computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int32_t &num1,
+                               int32_t* &max2,int32_t &num2,uint8_t* &I_du,uint8_t* &I_dv,uint8_t* &I_du_full,uint8_t* &I_dv_full)
+{
+    int16_t *I_f1;
+    int16_t *I_f2;
 
-  // return sparse maxima as 16-bytes aligned memory
-  if (num1!=0) {
-    max1 = (int32_t*)_mm_malloc(sizeof(Matcher::maximum)*num1,16);
-    int32_t k=0;
-    for (vector<Matcher::maximum>::iterator it=maxima1.begin(); it!=maxima1.end(); it++) {
-      *(max1+k++) = it->u*s;  *(max1+k++) = it->v*s;  *(max1+k++) = 0;        *(max1+k++) = it->c;
-      *(max1+k++) = it->d1;   *(max1+k++) = it->d2;   *(max1+k++) = it->d3;   *(max1+k++) = it->d4;
-      *(max1+k++) = it->d5;   *(max1+k++) = it->d6;   *(max1+k++) = it->d7;   *(max1+k++) = it->d8;
+    int32_t dims_matching[3];
+    memcpy(dims_matching,dims,3*sizeof(int32_t));
+
+    // allocate memory for sobel images and filter images
+    if (!param.half_resolution) {
+      I_du = (uint8_t*)_mm_malloc(dims[2]*dims[1]*sizeof(uint8_t*),16);
+      I_dv = (uint8_t*)_mm_malloc(dims[2]*dims[1]*sizeof(uint8_t*),16);
+      I_f1 = (int16_t*)_mm_malloc(dims[2]*dims[1]*sizeof(int16_t),16);
+      I_f2 = (int16_t*)_mm_malloc(dims[2]*dims[1]*sizeof(int16_t),16);
+      filter::sobel5x5(I,I_du,I_dv,dims[2],dims[1]);
+      filter::blob5x5(I,I_f1,dims[2],dims[1]);
+      filter::checkerboard5x5(I,I_f2,dims[2],dims[1]);
+    } else {
+      uint8_t* I_matching = createHalfResolutionImage(I,dims);
+      getHalfResolutionDimensions(dims,dims_matching);
+      I_du      = (uint8_t*)_mm_malloc(dims_matching[2]*dims_matching[1]*sizeof(uint8_t*),16);
+      I_dv      = (uint8_t*)_mm_malloc(dims_matching[2]*dims_matching[1]*sizeof(uint8_t*),16);
+      I_f1      = (int16_t*)_mm_malloc(dims_matching[2]*dims_matching[1]*sizeof(int16_t),16);
+      I_f2      = (int16_t*)_mm_malloc(dims_matching[2]*dims_matching[1]*sizeof(int16_t),16);
+      I_du_full = (uint8_t*)_mm_malloc(dims[2]*dims[1]*sizeof(uint8_t*),16);
+      I_dv_full = (uint8_t*)_mm_malloc(dims[2]*dims[1]*sizeof(uint8_t*),16);
+      filter::sobel5x5(I_matching,I_du,I_dv,dims_matching[2],dims_matching[1]);
+      filter::sobel5x5(I,I_du_full,I_dv_full,dims[2],dims[1]);
+      filter::blob5x5(I_matching,I_f1,dims_matching[2],dims_matching[1]);
+      filter::checkerboard5x5(I_matching,I_f2,dims_matching[2],dims_matching[1]);
+      _mm_free(I_matching);
     }
-  }
-  
-  // return dense maxima as 16-bytes aligned memory
-  if (num2!=0) {
-    max2 = (int32_t*)_mm_malloc(sizeof(Matcher::maximum)*num2,16);
-    int32_t k=0;
-    for (vector<Matcher::maximum>::iterator it=maxima2.begin(); it!=maxima2.end(); it++) {
-      *(max2+k++) = it->u*s;  *(max2+k++) = it->v*s;  *(max2+k++) = 0;        *(max2+k++) = it->c;
-      *(max2+k++) = it->d1;   *(max2+k++) = it->d2;   *(max2+k++) = it->d3;   *(max2+k++) = it->d4;
-      *(max2+k++) = it->d5;   *(max2+k++) = it->d6;   *(max2+k++) = it->d7;   *(max2+k++) = it->d8;
+
+    // extract sparse maxima (1st pass) via non-maximum suppression
+    vector<Matcher::maximum> maxima1;
+    if (param.multi_stage) {
+      int32_t nms_n_sparse = param.nms_n*3;
+      if (nms_n_sparse>10)
+        nms_n_sparse = max(param.nms_n,10);
+      nonMaximumSuppression(I_f1,I_f2,dims_matching,maxima1,nms_n_sparse);
+      computeDescriptors(I_du,I_dv,dims_matching[2],maxima1);
     }
-  }
+
+    // extract dense maxima (2nd pass) via non-maximum suppression
+    vector<Matcher::maximum> maxima2;
+    nonMaximumSuppression(I_f1,I_f2,dims_matching,maxima2,param.nms_n);
+    computeDescriptors(I_du,I_dv,dims_matching[2],maxima2);
+
+    // release filter images
+    _mm_free(I_f1);
+    _mm_free(I_f2);
+
+    // get number of interest points and init maxima pointer to NULL
+    num1 = maxima1.size();
+    num2 = maxima2.size();
+    max1 = 0;
+    max2 = 0;
+
+    int32_t s = 1;
+    if (param.half_resolution)
+      s = 2;
+
+    // return sparse maxima as 16-bytes aligned memory
+    if (num1!=0) {
+      max1 = (int32_t*)_mm_malloc(sizeof(Matcher::maximum)*num1,16);
+      int32_t k=0;
+      for (vector<Matcher::maximum>::iterator it=maxima1.begin(); it!=maxima1.end(); it++) {
+        *(max1+k++) = it->u*s;  *(max1+k++) = it->v*s;  *(max1+k++) = 0;        *(max1+k++) = it->c;
+        *(max1+k++) = it->d1;   *(max1+k++) = it->d2;   *(max1+k++) = it->d3;   *(max1+k++) = it->d4;
+        *(max1+k++) = it->d5;   *(max1+k++) = it->d6;   *(max1+k++) = it->d7;   *(max1+k++) = it->d8;
+      }
+    }
+
+    // return dense maxima as 16-bytes aligned memory
+    if (num2!=0) {
+      max2 = (int32_t*)_mm_malloc(sizeof(Matcher::maximum)*num2,16);
+      int32_t k=0;
+      for (vector<Matcher::maximum>::iterator it=maxima2.begin(); it!=maxima2.end(); it++) {
+        *(max2+k++) = it->u*s;  *(max2+k++) = it->v*s;  *(max2+k++) = 0;        *(max2+k++) = it->c;
+        *(max2+k++) = it->d1;   *(max2+k++) = it->d2;   *(max2+k++) = it->d3;   *(max2+k++) = it->d4;
+        *(max2+k++) = it->d5;   *(max2+k++) = it->d6;   *(max2+k++) = it->d7;   *(max2+k++) = it->d8;
+      }
+    }
 }
 
 void Matcher::computePriorStatistics (vector<Matcher::p_match> &p_matched,int32_t method) {
