@@ -16,10 +16,10 @@ MainDialog::MainDialog(QWidget *parent) :
     stereo_image = new StereoImage();
     time_of_last_frame.tv_sec  = 0;
     time_of_last_frame.tv_usec = 0;
-    calib = new CalibIO();
+    calib = new CalibIOKITTI();
     capture_mutex = new QMutex();
-    cam_left      = new FrameCaptureThread(stereo_image,calib,true,capture_mutex);
-    cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
+    //cam_left      = new FrameCaptureThread(stereo_image,calib,true,capture_mutex);
+    //cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
     vo_thread     = new VisualOdometryThread(calib);
     stereo_thread = new StereoThread(calib,ui->modelView);
     read_thread   = new ReadFromFilesThread(stereo_image,calib);
@@ -51,8 +51,8 @@ MainDialog::MainDialog(QWidget *parent) :
 MainDialog::~MainDialog()
 {
     delete ui;
-    delete cam_left;
-    delete cam_right;
+    //delete cam_left;
+    //delete cam_right;
     delete capture_mutex;
     delete stereo_image;
     delete calib;
@@ -217,8 +217,8 @@ void MainDialog::on_backgroundWallSlider_sliderMoved(int position)
 
 void MainDialog::on_resetBusButton_clicked()
 {
-    cam_left->resetBus();
-    cam_right->resetBus();
+    //cam_left->resetBus();
+    //cam_right->resetBus();
 
     // show successfull reset message:
     cout << endl;
@@ -305,8 +305,8 @@ void MainDialog::on_exitButton_clicked()
 
 void MainDialog::on_stopCapturingButton_clicked()
 {
-    cam_left->stopRecording();
-    cam_right->stopRecording();
+    //cam_left->stopRecording();
+    //cam_right->stopRecording();
     ui->captureFromFirewireButton->setEnabled(true);
     ui->stopCapturingButton->setEnabled(false);
 }
@@ -315,6 +315,7 @@ void MainDialog::on_stopCapturingButton_clicked()
 
 void MainDialog::on_captureFromFirewireButton_clicked()
 {
+    /*
     SelectCamerasDialog dlg(cam_left,cam_right,ui->shutterSpinBox->value(),calib);
     dlg.exec();
     if (cam_left->isRunning()||cam_right->isRunning())
@@ -322,6 +323,7 @@ void MainDialog::on_captureFromFirewireButton_clicked()
         ui->captureFromFirewireButton->setEnabled(false);
         ui->stopCapturingButton->setEnabled(true);
     }
+    */
 }
 
 //==============================================================================//
@@ -491,6 +493,7 @@ void MainDialog::onNewCalibrationData()
     calib->pickedUp();
     calib->showCalibrationParameters();
 
+    /*
     // Stop, disconnect, and delete the following threads which need the calibration data.
     if( cam_left->isRunning() )
     {
@@ -509,6 +512,7 @@ void MainDialog::onNewCalibrationData()
     }
     delete cam_right;
     cam_right = 0;
+    */
 
     if( vo_thread->isRunning() )
     {
@@ -529,8 +533,8 @@ void MainDialog::onNewCalibrationData()
     stereo_thread = 0;
 
     // Generate the new threads which need the calibration data.
-    cam_left      = new FrameCaptureThread(stereo_image,calib,true,capture_mutex);
-    cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
+    //cam_left      = new FrameCaptureThread(stereo_image,calib,true,capture_mutex);
+    //cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
     vo_thread     = new VisualOdometryThread(calib);
     stereo_thread = new StereoThread(calib,ui->modelView);
 

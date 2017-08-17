@@ -2,9 +2,9 @@
 
 using namespace std;
 
-VisualOdometryThread::VisualOdometryThread(CalibIO *calib,QObject *parent) :
-    QThread(parent),
-    calib(calib)
+VisualOdometryThread::VisualOdometryThread(CalibIOKITTI *calib,QObject *parent)
+    : QThread(parent)
+    , calib(calib)
 {
     //Matcher::parameters matcherParam( 3,50,50,300,2,5,5,1,1,2 );
     //Matcher::parameters matcherParam;
@@ -14,14 +14,15 @@ VisualOdometryThread::VisualOdometryThread(CalibIO *calib,QObject *parent) :
 
     // set most important visual odometry parameters
     // for a full parameter list, look at: viso_stereo.h
+    // Now we use the 1st and 2nd cameras in KITTI data set for visual odometry
+    // TODO: Let the user have the choice.
     VisualOdometryStereo::parameters voParam;
-    // read calibration if available.
     if (calib->calibrated())
     {
-        voParam.calib.f  =  cvmGet(calib->P1_roi,0,0); // focal length in pixels
-        voParam.calib.cu =  cvmGet(calib->P1_roi,0,2); // principal point (u-coordinate) in pixels
-        voParam.calib.cv =  cvmGet(calib->P1_roi,1,2); // principal point (v-coordinate) in pixels
-        voParam.base  = -cvmGet(calib->P2_roi,0,3)/cvmGet(calib->P2_roi,0,0); // baseline in meters
+        voParam.calib.f = calib->m_cam_to_cam_P_rect[0].at<float>(0,0); // x focal length in pixels.
+        voParam.calib.cu = calib->m_cam_to_cam_P_rect[0].at<float>(0,2); // principal point (u-coordinate) in pixels
+        voParam.calib.cv = calib->m_cam_to_cam_P_rect[0].at<float>(1,2); // principal point (v-coordinate) in pixels
+        voParam.base  = -(calib->m_cam_to_cam_P_rect[1].at<float>(0,3))/(calib->m_cam_to_cam_P_rect[1].at<float>(0,0)); // baseline in meters
     }
     vo      = new VisualOdometryStereo( voParam );
 

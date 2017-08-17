@@ -5,7 +5,7 @@
 #include <QThread>
 
 #include "view3d.h"
-#include "calibio.h"
+#include "calibiokitti.h"
 #include "stereoimage.h"
 #include "planeestimation.h"
 
@@ -17,7 +17,7 @@ class StereoThread : public QThread
 
 public:
 
-    StereoThread(CalibIO *calib,View3D *modelView,QObject *parent = 0);
+    StereoThread(CalibIOKITTI *calib,View3D *modelView,QObject *parent = 0);
     ~StereoThread();
     void pushBack(StereoImage::simage &s,Matrix H_total,float gain_);
     void pushBack(StereoImage::simage &s,bool subsampling_);
@@ -66,7 +66,7 @@ private:
     void  releaseMap(map3d m);
     void  getIntrinsics();
 
-    CalibIO               *calib;
+    CalibIOKITTI          *calib;
     View3D                *modelView;
     PlaneEstimation       *plane;
     StereoImage::simage   *simg;

@@ -3,7 +3,7 @@
 
 using namespace std;
 
-ReadFromFilesThread::ReadFromFilesThread(StereoImage *stereo_image,CalibIO *calib,QObject *parent) :
+ReadFromFilesThread::ReadFromFilesThread(StereoImage *stereo_image, CalibIOKITTI *calib, QObject *parent) :
     QThread(parent),
     calib(calib),
     stereo_image(stereo_image)
@@ -21,7 +21,7 @@ ReadFromFilesThread::~ReadFromFilesThread()
 void ReadFromFilesThread::run()
 {
     // release old images
-    for(int32_t i=0; i<(int32_t)I1.size(); i++)
+    for (int32_t i=0; i<(int32_t)I1.size(); i++)
     {
         cvReleaseImage(&I1[i]);
         cvReleaseImage(&I2[i]);
@@ -29,8 +29,10 @@ void ReadFromFilesThread::run()
     I1.clear();
     I2.clear();
 
-    // read new calibration file
-    if(calib->readCalibFromFile((input_dir+"/calib.txt").toStdString()))
+    // read new calibration file for Karlsruhe Dataset
+    if (calib->readCalibFromFiles((input_dir+"/calib/calib_cam_to_cam.txt").toStdString(),
+                                  (input_dir+"/calib/calib_imu_to_velo.txt").toStdString(),
+                                  (input_dir+"/calib/calib_velo_to_cam.txt").toStdString()))
     {
         calib->showCalibrationParameters();
 
@@ -41,18 +43,21 @@ void ReadFromFilesThread::run()
         FILE *f2;
 
         // read images
+        // TODO: get the number of images in the directory.
         for (int32_t i=0; i<5000; i++)
         {
             string input_dir_str = input_dir.toStdString();
-            sprintf(fn1,"%s/I1_%06d.png",input_dir_str.c_str(),i);
-            sprintf(fn2,"%s/I2_%06d.png",input_dir_str.c_str(),i);
+            // Use the sync-rectified images from first and second cameras as default.
+            // TODO: allow users choose.
+            sprintf(fn1,"%s/sync/image_00/data/%010d.png",input_dir_str.c_str(),i);
+            sprintf(fn2,"%s/sync/image_01/data/%010d.png",input_dir_str.c_str(),i);
 
             f1 = fopen (fn1,"r");
             f2 = fopen (fn2,"r");
 
             if (f1!=NULL && f2!=NULL)
             {
-                printf("Reading: I1_%06d.png, I2_%06d.png",i,i);
+                printf("Reading: %010d.png, %010d.png",i,i);
                 cout << endl;
 
                 IplImage* I1_curr = cvLoadImage(fn1,CV_LOAD_IMAGE_GRAYSCALE);

@@ -4,10 +4,11 @@
 #include <QDialog>
 
 #include "framecapturethread.h"
-#include "calibio.h"
+#include "calibiokitti.h"
 #include "QSettings"
 
-namespace Ui {
+namespace Ui
+{
     class SelectCamerasDialog;
 }
 
@@ -17,7 +18,7 @@ class SelectCamerasDialog : public QDialog
 
 public:
     explicit SelectCamerasDialog(FrameCaptureThread *cam_left,FrameCaptureThread *cam_right,
-                                 int shutter,CalibIO *calib,QWidget *parent = 0);
+                                 int shutter,CalibIOKITTI *calib,QWidget *parent = 0);
     ~SelectCamerasDialog();
 
 private:
@@ -26,10 +27,16 @@ private:
     FrameCaptureThread *cam_right;
     int shutter;
     QSettings *settings;
-    CalibIO *calib;
+    CalibIOKITTI *calib;
 
 private slots:
+
+    /*
+     * Handle when clicking the select file button and then the window will pop up to allow
+     * users to select the cameras calibration file.
+     */
     void on_selectFileButton_clicked();
+
     void on_buttonBox_accepted();
 };
 

@@ -11,11 +11,12 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         maindialog.cpp \
-    selectcamerasdialog.cpp \
-    framecapturethread.cpp \
+    #selectcamerasdialog.cpp \
+    #framecapturethread.cpp \
     stereoimage.cpp \
     view2d.cpp \
-    calibio.cpp \
+    #calibio.cpp \
+    calibiokitti.cpp \
     view3d.cpp \
     visualodometrythread.cpp \
     stereothread.cpp \
@@ -33,11 +34,12 @@ SOURCES += main.cpp\
     ../libviso2/src/viso_stereo.cpp
 
 HEADERS  += maindialog.h \
-    selectcamerasdialog.h \
-    framecapturethread.h \
+    #selectcamerasdialog.h \
+    #framecapturethread.h \
     stereoimage.h \
     view2d.h \
-    calibio.h \
+    #calibio.h \
+    calibiokitti.h \
     view3d.h \
     visualodometrythread.h \
     stereothread.h \

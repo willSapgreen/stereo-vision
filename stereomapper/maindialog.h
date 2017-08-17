@@ -11,17 +11,18 @@
 #include "visualodometrythread.h"
 #include "stereothread.h"
 #include "stereoimage.h"
-#include "calibio.h"
+#include "calibiokitti.h"
 #include "savestereoimagethread.h"
 #include "readfromfilesthread.h"
 #include "visualizethread.h"
 
-namespace Ui {
+namespace Ui
+{
     class MainDialog;
 }
 
-class MainDialog : public QDialog {
-
+class MainDialog : public QDialog
+{
     Q_OBJECT
 
 public:
@@ -36,15 +37,15 @@ private:
 
     Ui::MainDialog       *ui;
     StereoImage          *stereo_image;
-    FrameCaptureThread   *cam_left;
-    FrameCaptureThread   *cam_right;
+    //FrameCaptureThread   *cam_left;
+    //FrameCaptureThread   *cam_right;
     VisualOdometryThread *vo_thread;
     StereoThread         *stereo_thread;
     ReadFromFilesThread  *read_thread;
     VisualizeThread      *visualize_thread;
     QMutex               *capture_mutex;
     timeval              time_of_last_frame;
-    CalibIO              *calib;
+    CalibIOKITTI              *calib;
     CvMat                *M1x,*M1y,*M2x,*M2y;
     IplImage             *I1_rect,*I2_rect;
     QSettings            *settings;

@@ -4,7 +4,7 @@
 #include <QThread>
 
 #include <list>
-#include "calibio.h"
+#include "calibiokitti.h"
 #include "stereoimage.h"
 #include "../libviso2/src/viso_stereo.h"
 #include "../libviso2/src/timer.h"
@@ -15,7 +15,7 @@ class VisualOdometryThread : public QThread
 
 public:
 
-    VisualOdometryThread(CalibIO *calib,QObject *parent = 0);
+    VisualOdometryThread(CalibIOKITTI *calib,QObject *parent = 0);
     ~VisualOdometryThread();
     void pushBack(StereoImage::simage &s,bool record_raw_odometry_=false);
     std::vector<Matcher::p_match> getMatches() { return vo->getMatches(); }
@@ -42,7 +42,7 @@ private:
 
     VisualOdometryStereo           *vo;
     StereoImage::simage            *simg;
-    CalibIO                        *calib;
+    CalibIOKITTI                        *calib;
     //Matcher                        *matcher;
 
     //std::vector<Matcher::p_match>   matches;

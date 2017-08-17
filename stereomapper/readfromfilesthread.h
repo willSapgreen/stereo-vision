@@ -5,17 +5,19 @@
 #include <QString>
 #include <opencv2/highgui/highgui.hpp>
 
-#include "calibio.h"
+#include "calibiokitti.h"
 #include "stereoimage.h"
 
+/**
+    Read the camera calibration file and the stereo RECTIFIED images.
+*/
 class ReadFromFilesThread : public QThread
 {
-
     Q_OBJECT
 
 public:
 
-    ReadFromFilesThread(StereoImage *stereo_image,CalibIO *calib,QObject *parent = 0);
+    ReadFromFilesThread(StereoImage *stereo_image, CalibIOKITTI *calib, QObject *parent = 0);
     ~ReadFromFilesThread();
     void setInputDir(QString input_dir_) {input_dir = input_dir_;}
 
@@ -25,8 +27,8 @@ protected:
 
 private:
 
-    CalibIO     *calib;
-    StereoImage *stereo_image;
+    CalibIOKITTI   *calib;
+    StereoImage    *stereo_image;
 
     std::vector<IplImage*> I1;
     std::vector<IplImage*> I2;

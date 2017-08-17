@@ -3,7 +3,7 @@
 
 using namespace std;
 
-StereoThread::StereoThread(CalibIO *calib,View3D *modelView,QObject *parent) :
+StereoThread::StereoThread(CalibIOKITTI *calib,View3D *modelView,QObject *parent) :
     QThread(parent),
     calib(calib),
     modelView(modelView) {
@@ -348,10 +348,10 @@ void StereoThread::addDisparityMapToReconstruction() {
 void StereoThread::getIntrinsics() {
 
   // intrinsics
-  f    = cvmGet(calib->P1_roi,0,0);
-  cu   = cvmGet(calib->P1_roi,0,2);
-  cv   = cvmGet(calib->P1_roi,1,2);
-  base = -cvmGet(calib->P2_roi,0,3)/cvmGet(calib->P2_roi,0,0);
+  f    = calib->m_cam_to_cam_P_rect[0].at<float>(0,0);
+  cu   = calib->m_cam_to_cam_P_rect[0].at<float>(0,2);
+  cv   = calib->m_cam_to_cam_P_rect[0].at<float>(1,2);
+  base = -(calib->m_cam_to_cam_P_rect[1].at<float>(0,3))/(calib->m_cam_to_cam_P_rect[1].at<float>(0,0));
 
   // calibration matrix
   K = Matrix(3,3);
