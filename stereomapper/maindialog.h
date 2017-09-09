@@ -39,7 +39,7 @@ private:
     StereoImage          *stereo_image;
     //FrameCaptureThread   *cam_left;
     //FrameCaptureThread   *cam_right;
-    VisualOdometryThread *vo_thread;
+    VisualOdometryThread *visualOdomThread;
     StereoThread         *stereo_thread;
     ReadFromFilesThread  *read_thread;
     VisualizeThread      *visualize_thread;
@@ -79,9 +79,13 @@ private slots:
 
     /*
      * Handle "Start Grabbing" button click.
-    */
+     */
     void on_captureFromFirewireButton_clicked();
 
+    /*
+     * Handle when the new StereoImage received.
+     *
+     */
     void newStereoImageArrived();
     void newHomographyArrived();
     void newDisparityMapArrived();

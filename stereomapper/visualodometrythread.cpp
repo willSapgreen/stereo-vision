@@ -16,15 +16,15 @@ VisualOdometryThread::VisualOdometryThread(CalibIOKITTI *calib,QObject *parent)
     // for a full parameter list, look at: viso_stereo.h
     // Now we use the 1st and 2nd cameras in KITTI data set for visual odometry
     // TODO: Let the user have the choice.
-    VisualOdometryStereo::parameters voParam;
+    VisualOdometryStereo::parameters visualOdomStereoParam;
     if (calib->calibrated())
     {
-        voParam.calib.f = calib->m_cam_to_cam_P_rect[0].at<float>(0,0); // x focal length in pixels.
-        voParam.calib.cu = calib->m_cam_to_cam_P_rect[0].at<float>(0,2); // principal point (u-coordinate) in pixels
-        voParam.calib.cv = calib->m_cam_to_cam_P_rect[0].at<float>(1,2); // principal point (v-coordinate) in pixels
-        voParam.base  = -(calib->m_cam_to_cam_P_rect[1].at<float>(0,3))/(calib->m_cam_to_cam_P_rect[1].at<float>(0,0)); // baseline in meters
+        visualOdomStereoParam.calib.f = calib->m_cam_to_cam_P_rect[0].at<float>(0,0); // x focal length in pixels.
+        visualOdomStereoParam.calib.cu = calib->m_cam_to_cam_P_rect[0].at<float>(0,2); // principal point (u-coordinate) in pixels
+        visualOdomStereoParam.calib.cv = calib->m_cam_to_cam_P_rect[0].at<float>(1,2); // principal point (v-coordinate) in pixels
+        visualOdomStereoParam.base  = -(calib->m_cam_to_cam_P_rect[1].at<float>(0,3))/(calib->m_cam_to_cam_P_rect[1].at<float>(0,0)); // baseline in meters
     }
-    vo      = new VisualOdometryStereo( voParam );
+    visualOdomStereo      = new VisualOdometryStereo( visualOdomStereoParam );
 
     simg              = 0;
     time_prev.tv_sec  = 0;
@@ -38,7 +38,7 @@ VisualOdometryThread::VisualOdometryThread(CalibIOKITTI *calib,QObject *parent)
 
 VisualOdometryThread::~VisualOdometryThread()
 {
-    delete vo;
+    delete visualOdomStereo;
     if (simg!=0)
     {
         delete simg;
@@ -97,21 +97,21 @@ void VisualOdometryThread::run()
         // grab matches
         //matches = matcher->getMatches();
 
-        //t.start("vo");
+        //t.start("visualOdomStereo");
 
         // update: H_total = H_total * H^-1
         //if (matches.size()>0)
         //{
 
           // visual odometry
-          vo->process( simg->I1,simg->I2,dim,false );
+          visualOdomStereo->process(simg->I1,simg->I2,dim,false);
           Matrix H_inv = Matrix::eye(4);
-          Matrix H = vo->getMotion();
+          Matrix H = visualOdomStereo->getMotion();
 
           // get inliers
-          vector<int32_t> inliers_ = vo->getInlierIndices();
+          vector<int32_t> inliers_ = visualOdomStereo->getInlierIndices();
           inliers.clear();
-          for (int32_t i=0; i<(int32_t)vo->getMatches().size(); i++)
+          for (int32_t i=0; i<(int32_t)visualOdomStereo->getMatches().size(); i++)
           {
             inliers.push_back(false);
           }
@@ -121,7 +121,7 @@ void VisualOdometryThread::run()
           }
 
           // compute gain
-          gain = vo->getGain( inliers_ );
+          gain = visualOdomStereo->getGain( inliers_ );
 
           if (H_inv.solve(H))
           {

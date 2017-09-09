@@ -20,14 +20,14 @@ MainDialog::MainDialog(QWidget *parent) :
     capture_mutex = new QMutex();
     //cam_left      = new FrameCaptureThread(stereo_image,calib,true,capture_mutex);
     //cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
-    vo_thread     = new VisualOdometryThread(calib);
+    visualOdomThread     = new VisualOdometryThread(calib);
     stereo_thread = new StereoThread(calib,ui->modelView);
     read_thread   = new ReadFromFilesThread(stereo_image,calib);
     visualize_thread = new VisualizeThread(ui->disparityView,ui->modelView);
 
     // connect to the objects for communication.
     QObject::connect(stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
-    QObject::connect(vo_thread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
+    QObject::connect(visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
     QObject::connect(stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
     QObject::connect(calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
 
@@ -56,7 +56,7 @@ MainDialog::~MainDialog()
     delete capture_mutex;
     delete stereo_image;
     delete calib;
-    delete vo_thread;
+    delete visualOdomThread;
     delete stereo_thread;
     delete read_thread;
     delete visualize_thread;
@@ -251,10 +251,10 @@ void MainDialog::on_stereoScanButton_clicked()
         stereo_scan = false;
 
         // terminate all processes
-        vo_thread->terminate();
+        visualOdomThread->terminate();
         stereo_thread->terminate();
         read_thread->terminate();
-        while (vo_thread->isRunning() || stereo_thread->isRunning() || read_thread->isRunning());
+        while (visualOdomThread->isRunning() || stereo_thread->isRunning() || read_thread->isRunning());
 
     // starting ...
     }
@@ -264,7 +264,7 @@ void MainDialog::on_stereoScanButton_clicked()
         ui->stereoScanButton->setText("Stop!");
 
         // reset everything
-        vo_thread->resetHomographyTotal();
+        visualOdomThread->resetHomographyTotal();
         frame_number = 0;
         gain_total   = 1;
         ui->modelView->clearAll();
@@ -380,7 +380,7 @@ void MainDialog::newStereoImageArrived()
         }
 
         // start quad matching if idle
-        if (stereo_scan && simg.rectified && !vo_thread->isRunning())
+        if (stereo_scan && simg.rectified && !visualOdomThread->isRunning())
         {
             QPalette p(palette());
 
@@ -394,8 +394,8 @@ void MainDialog::newStereoImageArrived()
             }
 
             setPalette(p);
-            vo_thread->pushBack(simg,ui->recordRawOdometryCheckBox->isChecked());
-            vo_thread->start();
+            visualOdomThread->pushBack(simg,ui->recordRawOdometryCheckBox->isChecked());
+            visualOdomThread->start();
         }
     }
     // elas mode
@@ -425,18 +425,18 @@ void MainDialog::newStereoImageArrived()
 void MainDialog::newHomographyArrived()
 {
     // get stereo image deepcopy
-    StereoImage::simage simg(*vo_thread->getStereoImage());
-    Matrix H_total = vo_thread->getHomographyTotal();
-    gain_total *= vo_thread->getGain();
-    vo_thread->pickedUp();
+    StereoImage::simage simg(*visualOdomThread->getStereoImage());
+    Matrix H_total = visualOdomThread->getHomographyTotal();
+    gain_total *= visualOdomThread->getGain();
+    visualOdomThread->pickedUp();
 
     // show quad match
     ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
     ui->rightImageView->setImage(simg.I2,simg.width,simg.height);
 
     // show images
-    ui->leftImageView->setMatches(vo_thread->getMatches(),vo_thread->getInliers(),true);
-    ui->rightImageView->setMatches(vo_thread->getMatches(),vo_thread->getInliers(),false);
+    ui->leftImageView->setMatches(visualOdomThread->getMatches(),visualOdomThread->getInliers(),true);
+    ui->rightImageView->setMatches(visualOdomThread->getMatches(),visualOdomThread->getInliers(),false);
 
     // start dense stereo matching if idle
     if (stereo_scan && !stereo_thread->isRunning() && !ui->saveToFilesCheckBox->isChecked())
@@ -514,14 +514,14 @@ void MainDialog::onNewCalibrationData()
     cam_right = 0;
     */
 
-    if( vo_thread->isRunning() )
+    if( visualOdomThread->isRunning() )
     {
-        vo_thread->quit();
-        while( vo_thread->isRunning() );
+        visualOdomThread->quit();
+        while( visualOdomThread->isRunning() );
     }
-    vo_thread->disconnect();
-    delete vo_thread;
-    vo_thread = 0;
+    visualOdomThread->disconnect();
+    delete visualOdomThread;
+    visualOdomThread = 0;
 
     if( stereo_thread->isRunning() )
     {
@@ -535,12 +535,12 @@ void MainDialog::onNewCalibrationData()
     // Generate the new threads which need the calibration data.
     //cam_left      = new FrameCaptureThread(stereo_image,calib,true,capture_mutex);
     //cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
-    vo_thread     = new VisualOdometryThread(calib);
+    visualOdomThread     = new VisualOdometryThread(calib);
     stereo_thread = new StereoThread(calib,ui->modelView);
 
     // connect to the objects for communication.
     QObject::connect(stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
-    QObject::connect(vo_thread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
+    QObject::connect(visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
     QObject::connect(stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
     QObject::connect(calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
 }

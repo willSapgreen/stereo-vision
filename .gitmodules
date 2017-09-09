@@ -1,0 +1,3 @@
+[submodule "gpxlib"]
+	path = gpxlib
+	url = https://github.com/irdvo/gpxlib.git
