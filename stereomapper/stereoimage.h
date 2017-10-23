@@ -108,7 +108,7 @@ public:
         }
     };
 
-    void setImage(unsigned char* data,int width,int height,int step,bool cam_left,bool rectified);
+    void setImage( unsigned char* data,int width,int height,int step,bool cam_left,bool rectified,timeval captured_time );
     bool isRectified() { return 0; }
     simage* getStereoImage() { return simg; }
     void pickedUp() { picked = true; }

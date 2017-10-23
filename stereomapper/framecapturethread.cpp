@@ -340,9 +340,12 @@ void FrameCaptureThread::run()
 
             int step; // OpenCV allocates aligned memory
             unsigned char *I_data;
+            timeval capture_time;
+
             cvGetRawData(I_rect,&I_data,&step);
             capture_mutex->lock();
-            stereo_image->setImage(I_data,calib->width(),calib->height(),step,cam_left,true);
+            gettimeofday(&captured_time,0);
+            stereo_image->setImage( I_data,calib->width(), calib->height(), step,cam_left, true, captured_time );
             capture_mutex->unlock();
             cvReleaseImageHeader(&I);
         }
@@ -354,7 +357,10 @@ void FrameCaptureThread::run()
                 cout << dc_frame->size[0] << " x " << dc_frame->size[1] << endl;
             }
             capture_mutex->lock();
-            stereo_image->setImage(dc_frame->image,dc_frame->size[0],dc_frame->size[1],dc_frame->size[0],cam_left,false);
+            timeval captured_time;
+            gettimeofday(&captured_time,0);
+            stereo_image->setImage( dc_frame->image, dc_frame->size[0], dc_frame->size[1],
+                                    dc_frame->size[0],cam_left,false, captured_time);
             capture_mutex->unlock();
         }
 

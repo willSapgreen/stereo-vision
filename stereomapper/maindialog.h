@@ -56,6 +56,7 @@ private:
     bool                 save_single_frame;
     std::string          output_dir;
     std::vector<SaveStereoImageThread*> save_stereo_threads;
+    StereoImageIOKITTI* _stereo_image_io;
 
 private slots:
 

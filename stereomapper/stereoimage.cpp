@@ -25,7 +25,7 @@ StereoImage::~StereoImage()
 
 //==============================================================================//
 
-void StereoImage::setImage(unsigned char* data,int width,int height,int step,bool cam_left,bool rectified)
+void StereoImage::setImage(unsigned char* data,int width,int height,int step,bool cam_left,bool rectified,timeval captured_time )
 {
     // get pointer to data
     image *img = img_right;
@@ -49,7 +49,7 @@ void StereoImage::setImage(unsigned char* data,int width,int height,int step,boo
     }
 
     // set timestamp
-    gettimeofday(&img->time,0);
+    img->time = captured_time;
 
     // copy data
     memcpy(img->data,data,step*height*sizeof(unsigned char));
@@ -131,4 +131,3 @@ void StereoImage::histogramNormalization(unsigned char* I,const int &width,const
         }
     }
 }
-

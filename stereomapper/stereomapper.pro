@@ -63,7 +63,8 @@ SOURCES += main.cpp\
     ../gpxlib/gpx/URI.cpp \
     ../gpxlib/gpx/WPT.cpp \
     ../gpxlib/gpx/Writer.cpp \
-    gpxgenerator.cpp
+    gpxgenerator.cpp \
+    stereoimageiokitti.cpp
 
 HEADERS  += maindialog.h \
     #selectcamerasdialog.h \
@@ -118,7 +119,9 @@ HEADERS  += maindialog.h \
     ../gpxlib/gpx/URI.h \
     ../gpxlib/gpx/WPT.h \
     ../gpxlib/gpx/Writer.h \
-    gpxgenerator.h
+    gpxgenerator.h \
+    stereoimageiokitti.h
+      ../dirent/include/dirent.h
 
 FORMS    += maindialog.ui \
     selectcamerasdialog.ui

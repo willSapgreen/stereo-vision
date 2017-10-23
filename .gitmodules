@@ -1,3 +1,6 @@
 [submodule "gpxlib"]
 	path = gpxlib
 	url = https://github.com/irdvo/gpxlib.git
+[submodule "dirent"]
+	path = dirent
+	url = https://github.com/tronkko/dirent.git

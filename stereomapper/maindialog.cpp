@@ -22,7 +22,8 @@ MainDialog::MainDialog(QWidget *parent) :
     //cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
     visualOdomThread     = new VisualOdometryThread(calib);
     stereo_thread = new StereoThread(calib,ui->modelView);
-    read_thread   = new ReadFromFilesThread(stereo_image,calib);
+    _stereo_image_io = new StereoImageIOKITTI();
+    read_thread   = new ReadFromFilesThread(stereo_image,calib,_stereo_image_io);
     visualize_thread = new VisualizeThread(ui->disparityView,ui->modelView);
 
     // connect to the objects for communication.
@@ -61,6 +62,7 @@ MainDialog::~MainDialog()
     delete read_thread;
     delete visualize_thread;
     delete settings;
+    delete _stereo_image_io;
 }
 
 //==============================================================================//

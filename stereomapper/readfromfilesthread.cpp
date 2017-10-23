@@ -3,10 +3,12 @@
 
 using namespace std;
 
-ReadFromFilesThread::ReadFromFilesThread(StereoImage *stereo_image, CalibIOKITTI *calib, QObject *parent) :
-    QThread(parent),
-    calib(calib),
-    stereo_image(stereo_image)
+ReadFromFilesThread::ReadFromFilesThread( StereoImage *stereo_image, CalibIOKITTI *_calib,
+                                          StereoImageIOKITTI* stereo_image_io, QObject *parent)
+    : QThread(parent)
+    , _calib(_calib)
+    , _stereo_image_io( stereo_image_io )
+    , _stereo_image(stereo_image)
 {
 }
 
@@ -20,81 +22,56 @@ ReadFromFilesThread::~ReadFromFilesThread()
 
 void ReadFromFilesThread::run()
 {
-    // release old images
-    for (int32_t i=0; i<(int32_t)I1.size(); i++)
+    // Convert QString to std::string
+    std::string input_dir_str = _input_dir.toStdString();
+
+    // Check if the variables are valid.
+    if ((NULL == _calib) ||
+        (NULL == _stereo_image_io) ||
+        (input_dir_str.empty()))
     {
-        cvReleaseImage(&I1[i]);
-        cvReleaseImage(&I2[i]);
+        return;
     }
-    I1.clear();
-    I2.clear();
 
-    // read new calibration file for Karlsruhe Dataset
-    if (calib->readCalibFromFiles((input_dir+"/calib/calib_cam_to_cam.txt").toStdString(),
-                                  (input_dir+"/calib/calib_imu_to_velo.txt").toStdString(),
-                                  (input_dir+"/calib/calib_velo_to_cam.txt").toStdString()))
+    // Read in the calibration file for KITTI dataset.
+    if (_calib->readCalibFromFiles((input_dir_str + DEFAULT_CAM_TO_CAM_TXT_PATH),
+                                   (input_dir_str + DEFAULT_IMU_TO_VELO_TXT_PATH),
+                                   (input_dir_str + DEFAULT_VELO_TO_CAM_TXT_PATH)))
     {
-        calib->showCalibrationParameters();
+        // Show calibration parameters.
+        _calib->showCalibrationParameters();
 
-        char fn1[1024];
-        char fn2[1024];
-
-        FILE *f1;
-        FILE *f2;
-
-        // read images
-        // TODO: get the number of images in the directory.
-        for (int32_t i=0; i<5000; i++)
+        // Process left/right images and timestamp.
+        if (false == _stereo_image_io->fetchGrayStereoImage(input_dir_str + DEFAULT_IMAGE00_DATA_PATH,
+                                                            input_dir_str + DEFAULT_IMAGE00_TIMESTAMP_TXT_PATH,
+                                                            input_dir_str + DEFAULT_IMAGE01_DATA_PATH,
+                                                            input_dir_str + DEFAULT_IMAGE01_TIMESTAMP_TXT_PATH))
         {
-            string input_dir_str = input_dir.toStdString();
-            // Use the sync-rectified images from first and second cameras as default.
-            // TODO: allow users choose.
-            sprintf(fn1,"%s/sync/image_00/data/%010d.png",input_dir_str.c_str(),i);
-            sprintf(fn2,"%s/sync/image_01/data/%010d.png",input_dir_str.c_str(),i);
-
-            f1 = fopen (fn1,"r");
-            f2 = fopen (fn2,"r");
-
-            if (f1!=NULL && f2!=NULL)
-            {
-                printf("Reading: %010d.png, %010d.png",i,i);
-                cout << endl;
-
-                IplImage* I1_curr = cvLoadImage(fn1,CV_LOAD_IMAGE_GRAYSCALE);
-                IplImage* I2_curr = cvLoadImage(fn2,CV_LOAD_IMAGE_GRAYSCALE);
-
-                I1.push_back(I1_curr);
-                I2.push_back(I2_curr);
-            }
-
-            if (f1!=NULL) fclose(f1);
-            if (f2!=NULL) fclose(f2);
+            return;
         }
 
         // start output loop
         float fps = 10;
-        unsigned char *I1_data;
-        unsigned char *I2_data;
-        int step1,step2;
-        for (int32_t i=0; i<(int32_t)I1.size(); i++)
+        ImageDataCV left_img;
+        ImageDataCV right_img;
+        unsigned char* left_img_data;
+        unsigned char* right_img_data;
+        for (int32_t i=0; i<(int32_t)_stereo_image_io->getImagesNumber(); ++i)
         {
-            cvGetRawData(I1[i],&I1_data,&step1);
-            cvGetRawData(I2[i],&I2_data,&step2);
+            _stereo_image_io->getLeftRightImageData(i, left_img, right_img);
 
-            stereo_image->setImage(I1_data,I1[i]->width,I1[i]->height,step1,true,true);
-            stereo_image->setImage(I2_data,I2[i]->width,I2[i]->height,step2,false,true);
+            // Get the raw data.
+            cvGetRawData(left_img._image, &left_img_data);
+            cvGetRawData(right_img._image, &right_img_data);
+
+            _stereo_image->setImage(left_img_data, left_img._image->width,
+                                    left_img._image->height, left_img._image->widthStep,
+                                    true, true, left_img._captured_time);
+            _stereo_image->setImage(right_img_data, right_img._image->width,
+                                    right_img._image->height, right_img._image->widthStep,
+                                    false, true, right_img._captured_time);
             usleep(1e6/fps);
         }
-
-        // release images
-        for (int32_t i=0; i<(int32_t)I1.size(); i++)
-        {
-            cvReleaseImage(&I1[i]);
-            cvReleaseImage(&I2[i]);
-        }
-        I1.clear();
-        I2.clear();
-
     }
     else
     {
