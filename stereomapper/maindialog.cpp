@@ -330,7 +330,6 @@ void MainDialog::on_captureFromFirewireButton_clicked()
 
 //==============================================================================//
 
-// this is the main loop!
 void MainDialog::newStereoImageArrived()
 {
     // get stereo image deepcopy

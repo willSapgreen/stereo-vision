@@ -60,7 +60,6 @@ bool StereoImageIOKITTI::fetchGrayStereoImage(const std::string& left_images_dir
 
     // Read in timestamp.
     std::string lines[IMAGE_INPUT_SOURCE_COUNT];
-    struct tm time;
     int count = 0;
     if (time_stamp_stream[GRAY_LEFT].is_open() && time_stamp_stream[GRAY_RIGHT].is_open())
     {
@@ -68,49 +67,29 @@ bool StereoImageIOKITTI::fetchGrayStereoImage(const std::string& left_images_dir
         while ((std::getline(time_stamp_stream[GRAY_LEFT], lines[GRAY_LEFT])) &&
                (std::getline(time_stamp_stream[GRAY_RIGHT], lines[GRAY_RIGHT])))
         {
-            // USE
-            // mktime to get epoch time in second from year, month, day, hour, min, and second.
-            // and assign epoch time to timeval's second.
-            // assign part of narosecond to timeval's microsecond.
-            // Ref: https://stackoverflow.com/questions/28880849/convert-struct-tm-to-time-t
-
-            int year = std::stoi(lines[GRAY_LEFT].substr(0,4));
-            int month = std::stoi(lines[GRAY_LEFT].substr(5,2));
-            int day = std::stoi(lines[GRAY_LEFT].substr(8,2));
+            //int year = std::stoi(lines[GRAY_LEFT].substr(0,4));
+            //int month = std::stoi(lines[GRAY_LEFT].substr(5,2));
+            //int day = std::stoi(lines[GRAY_LEFT].substr(8,2));
             int hour = std::stoi(lines[GRAY_LEFT].substr(11,2));
             int minute = std::stoi(lines[GRAY_LEFT].substr(14,2));
             int second = std::stoi(lines[GRAY_LEFT].substr(17,2));
             int narosecond = std::stoi(lines[GRAY_LEFT].substr(20,9));
 
-            time.tm_year = year;
-            time.tm_mon = month;
-            time.tm_mday = day;
-            time.tm_hour = hour;
-            time.tm_min = minute;
-            time.tm_sec = second;
-            mktime(&time);
-
-            _left_gray_images[count]._captured_time.tv_sec = time.tm_sec;
+            _left_gray_images[count]._captured_time.tv_sec = hour * 3600 + minute * 60 + second;
             _left_gray_images[count]._captured_time.tv_usec = narosecond / 1000;
 
-            year = std::stoi(lines[GRAY_RIGHT].substr(0,4));
-            month = std::stoi(lines[GRAY_RIGHT].substr(5,2));
-            day = std::stoi(lines[GRAY_RIGHT].substr(8,2));
+            //year = std::stoi(lines[GRAY_RIGHT].substr(0,4));
+            //month = std::stoi(lines[GRAY_RIGHT].substr(5,2));
+            //day = std::stoi(lines[GRAY_RIGHT].substr(8,2));
             hour = std::stoi(lines[GRAY_RIGHT].substr(11,2));
             minute = std::stoi(lines[GRAY_RIGHT].substr(14,2));
             second = std::stoi(lines[GRAY_RIGHT].substr(17,2));
             narosecond = std::stoi(lines[GRAY_RIGHT].substr(20,9));
 
-            time.tm_year = year;
-            time.tm_mon = month;
-            time.tm_mday = day;
-            time.tm_hour = hour;
-            time.tm_min = minute;
-            time.tm_sec = second;
-            mktime(&time);
-
-            _right_gray_images[count]._captured_time.tv_sec = time.tm_sec;
+            _right_gray_images[count]._captured_time.tv_sec = hour * 3600 + minute * 60 + second;
             _right_gray_images[count]._captured_time.tv_usec = narosecond / 1000;
+
+            std::cout << std::fixed << std::setprecision(0) << "time: " << _right_gray_images[count]._captured_time.tv_sec * 1e+6 + _right_gray_images[count]._captured_time.tv_usec << std::endl;
 
             std::ostringstream ss;
             ss << std::setw(10) << std::setfill('0') << count << ".png";
