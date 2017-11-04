@@ -4,10 +4,11 @@
 using namespace std;
 
 ReadFromFilesThread::ReadFromFilesThread( StereoImage *stereo_image, CalibIOKITTI *_calib,
-                                          StereoImageIOKITTI* stereo_image_io, QObject *parent)
+                                          StereoImageIOKITTI* stereo_image_io, OxTSIOKITTI* oxts_io, QObject *parent)
     : QThread(parent)
     , _calib(_calib)
     , _stereo_image_io( stereo_image_io )
+    , _oxts_io(oxts_io)
     , _stereo_image(stereo_image)
 {
 }
@@ -42,10 +43,14 @@ void ReadFromFilesThread::run()
         _calib->showCalibrationParameters();
 
         // Process left/right images and timestamp.
-        if (false == _stereo_image_io->fetchGrayStereoImage(input_dir_str + DEFAULT_IMAGE00_DATA_PATH,
-                                                            input_dir_str + DEFAULT_IMAGE00_TIMESTAMP_TXT_PATH,
-                                                            input_dir_str + DEFAULT_IMAGE01_DATA_PATH,
-                                                            input_dir_str + DEFAULT_IMAGE01_TIMESTAMP_TXT_PATH))
+        bool process_succeed = _stereo_image_io->fetchGrayStereoImage(input_dir_str + DEFAULT_IMAGE00_DATA_PATH,
+                                                                      input_dir_str + DEFAULT_IMAGE00_TIMESTAMP_TXT_PATH,
+                                                                      input_dir_str + DEFAULT_IMAGE01_DATA_PATH,
+                                                                      input_dir_str + DEFAULT_IMAGE01_TIMESTAMP_TXT_PATH) &&
+                               _oxts_io->fetchGrayOxTSData(input_dir_str + DEFAULT_OXTS_DATA_PATH,
+                                                           input_dir_str + DEFAULT_OXTS_TIMESTAMP_TXT_PATH);
+
+        if (!process_succeed)
         {
             return;
         }

@@ -5,6 +5,9 @@
  * Will Huang [willsapgreen@gmail.com]
  */
 
+#ifndef STEREOIMAGEIOKITTI_H
+#define STEREOIMAGEIOKITTI_H
+
 // std
 #include <string>
 #include <fstream>
@@ -77,3 +80,5 @@ private:
     std::unique_ptr<ImageDataCV[]> _left_gray_images;
     std::unique_ptr<ImageDataCV[]> _right_gray_images;
 };
+
+#endif

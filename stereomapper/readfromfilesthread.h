@@ -12,6 +12,7 @@
 #include "calibiokitti.h"
 #include "stereoimage.h"
 #include "stereoimageiokitti.h"
+#include "oxtsiokitti.h"
 
 /**
     Read the camera calibration file and the stereo RECTIFIED images.
@@ -25,6 +26,8 @@ const static std::string DEFAULT_IMAGE00_DATA_PATH = "/sync/image_00/data/";
 const static std::string DEFAULT_IMAGE01_DATA_PATH = "/sync/image_01/data/";
 const static std::string DEFAULT_IMAGE00_TIMESTAMP_TXT_PATH = "/sync/image_00/timestamps.txt";
 const static std::string DEFAULT_IMAGE01_TIMESTAMP_TXT_PATH = "/sync/image_01/timestamps.txt";
+const static std::string DEFAULT_OXTS_DATA_PATH = "/sync/oxts/data/";
+const static std::string DEFAULT_OXTS_TIMESTAMP_TXT_PATH = "/sync/oxts/timestamps.txt";
 
 class ReadFromFilesThread : public QThread
 {
@@ -32,7 +35,9 @@ class ReadFromFilesThread : public QThread
 
 public:
 
-    ReadFromFilesThread(StereoImage *stereo_image, CalibIOKITTI *calib, StereoImageIOKITTI* stereo_image_io, QObject *parent = 0);
+    ReadFromFilesThread(StereoImage *stereo_image, CalibIOKITTI *calib,
+                        StereoImageIOKITTI* stereo_image_io, OxTSIOKITTI* oxts_io,
+                        QObject *parent = 0);
     ~ReadFromFilesThread();
     inline void setInputDir(QString input_dir) {_input_dir = input_dir;}
 
@@ -44,6 +49,7 @@ private:
 
     CalibIOKITTI   *_calib;
     StereoImageIOKITTI *_stereo_image_io;
+    OxTSIOKITTI *_oxts_io;
     StereoImage     *_stereo_image;
     QString _input_dir;
 

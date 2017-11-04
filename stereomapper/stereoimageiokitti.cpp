@@ -118,8 +118,8 @@ bool StereoImageIOKITTI::fetchGrayStereoImage(const std::string& left_images_dir
 
 bool StereoImageIOKITTI::getLeftRightImageData(int nth, ImageDataCV& left_image, ImageDataCV& right_image)
 {
-    // Check if a_Nth is valid.
-    if( nth < 0 || nth >= _images_number )
+    // Check if nth is valid.
+    if (nth < 0 || nth >= _images_number)
     {
         return false;
     }

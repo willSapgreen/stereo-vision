@@ -53,8 +53,14 @@ bool VisualOdometryStereo::process (uint8_t *I1,uint8_t *I2,int32_t* dims,bool r
     }
 
     // match features and update motion
-    if (Tr_valid) matcher->matchFeatures(2,&Tr_delta);
-    else          matcher->matchFeatures(2);
+    if (Tr_valid)
+    {
+        matcher->matchFeatures(2,&Tr_delta);
+    }
+    else
+    {
+        matcher->matchFeatures(2);
+    }
 
     matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);
     p_matched = matcher->getMatches();

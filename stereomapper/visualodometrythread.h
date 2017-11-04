@@ -42,8 +42,8 @@ private:
 
     VisualOdometryStereo           *visualOdomStereo;
     StereoImage::simage            *simg;
-    CalibIOKITTI                        *calib;
-    //Matcher                        *matcher;
+    CalibIOKITTI                   *calib;
+    //Matcher                      *matcher;
 
     //std::vector<Matcher::p_match>   matches;
     std::vector<bool>               inliers;

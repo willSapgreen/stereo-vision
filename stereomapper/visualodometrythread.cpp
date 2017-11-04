@@ -24,6 +24,13 @@ VisualOdometryThread::VisualOdometryThread(CalibIOKITTI *calib,QObject *parent)
         visualOdomStereoParam.calib.cv = calib->m_cam_to_cam_P_rect[0].at<float>(1,2); // principal point (v-coordinate) in pixels
         visualOdomStereoParam.base  = -(calib->m_cam_to_cam_P_rect[1].at<float>(0,3))/(calib->m_cam_to_cam_P_rect[1].at<float>(0,0)); // baseline in meters
     }
+    std::cout << "visual odom stereo param(f, cu, cv, base): " << visualOdomStereoParam.calib.f
+                                                               << ","
+                                                               << visualOdomStereoParam.calib.cu
+                                                               << ","
+                                                               << visualOdomStereoParam.calib.cv
+                                                               << ","
+                                                               << visualOdomStereoParam.base << std::endl;
     visualOdomStereo      = new VisualOdometryStereo( visualOdomStereoParam );
 
     simg              = 0;
@@ -69,67 +76,36 @@ void VisualOdometryThread::run()
         time_prev = time_curr;
         time_curr = simg->time;
 
-        // read calibration
-        //float f  = 1;
-        //float cu = 0;
-        //float cv = 0;
-        //float b  = 1;
-        //if (calib->calibrated())
-        //{
-            //f  =  cvmGet(calib->P1_roi,0,0);
-            //cu =  cvmGet(calib->P1_roi,0,2);
-            //cv =  cvmGet(calib->P1_roi,1,2);
-            //b  = -cvmGet(calib->P2_roi,0,3)/cvmGet(calib->P2_roi,0,0);
-        //}
-
-        //Timer t;
-        //t.start("push");
         int32_t dim[3] = {0};
         dim[0] = simg->width;
         dim[1] = simg->height;
         dim[2] = simg->step;
-        //matcher->pushBack( simg->I1,simg->I2,dim,false );
 
-        //t.start("match");
-        //matcher->matchFeatures(2);
-        //matcher->bucketFeatures(5,50,50);
+        visualOdomStereo->process(simg->I1,simg->I2,dim,false);
+        Matrix H_inv = Matrix::eye(4);
+        Matrix H = visualOdomStereo->getMotion();
 
-        // grab matches
-        //matches = matcher->getMatches();
+        // get inliers
+        vector<int32_t> inliers_ = visualOdomStereo->getInlierIndices();
+        inliers.clear();
+        for (int32_t i=0; i<(int32_t)visualOdomStereo->getMatches().size(); i++)
+        {
+        inliers.push_back(false);
+        }
+        for (std::vector<int32_t>::iterator it=inliers_.begin(); it!=inliers_.end(); it++)
+        {
+          inliers[*it] = true;
+        }
 
-        //t.start("visualOdomStereo");
+        // compute gain
+        gain = visualOdomStereo->getGain( inliers_ );
 
-        // update: H_total = H_total * H^-1
-        //if (matches.size()>0)
-        //{
-
-          // visual odometry
-          visualOdomStereo->process(simg->I1,simg->I2,dim,false);
-          Matrix H_inv = Matrix::eye(4);
-          Matrix H = visualOdomStereo->getMotion();
-
-          // get inliers
-          vector<int32_t> inliers_ = visualOdomStereo->getInlierIndices();
-          inliers.clear();
-          for (int32_t i=0; i<(int32_t)visualOdomStereo->getMatches().size(); i++)
-          {
-            inliers.push_back(false);
-          }
-          for (std::vector<int32_t>::iterator it=inliers_.begin(); it!=inliers_.end(); it++)
-          {
-              inliers[*it] = true;
-          }
-
-          // compute gain
-          gain = visualOdomStereo->getGain( inliers_ );
-
-          if (H_inv.solve(H))
-          {
+        if (H_inv.solve(H))
+        {
             H_total = H_total*H_inv;
             picked = false;
             emit newHomographyArrived();
             while (!picked) usleep(1000);
-          }
-        //}
+        }
     }
 }

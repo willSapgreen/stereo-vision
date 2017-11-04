@@ -49,7 +49,7 @@ private:
     CvMat                *M1x,*M1y,*M2x,*M2y;
     IplImage             *I1_rect,*I2_rect;
     QSettings            *settings;
-    int                  frame_number;
+    int                  _frame_index;
     timeval              last_frame_time;
     bool                 stereo_scan;
     float                gain_total;
@@ -57,6 +57,7 @@ private:
     std::string          output_dir;
     std::vector<SaveStereoImageThread*> save_stereo_threads;
     StereoImageIOKITTI* _stereo_image_io;
+    OxTSIOKITTI* _oxts_io;
 
 private slots:
 

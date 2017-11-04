@@ -23,7 +23,8 @@ MainDialog::MainDialog(QWidget *parent) :
     visualOdomThread     = new VisualOdometryThread(calib);
     stereo_thread = new StereoThread(calib,ui->modelView);
     _stereo_image_io = new StereoImageIOKITTI();
-    read_thread   = new ReadFromFilesThread(stereo_image,calib,_stereo_image_io);
+    _oxts_io = new OxTSIOKITTI();
+    read_thread   = new ReadFromFilesThread(stereo_image, calib, _stereo_image_io, _oxts_io);
     visualize_thread = new VisualizeThread(ui->disparityView,ui->modelView);
 
     // connect to the objects for communication.
@@ -32,7 +33,7 @@ MainDialog::MainDialog(QWidget *parent) :
     QObject::connect(stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
     QObject::connect(calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
 
-    frame_number = 0;
+    _frame_index = 0;
     gain_total   = 1;
     stereo_scan  = false;
     settings = new QSettings("KIT", "stereomapper");
@@ -63,6 +64,7 @@ MainDialog::~MainDialog()
     delete visualize_thread;
     delete settings;
     delete _stereo_image_io;
+    delete _oxts_io;
 }
 
 //==============================================================================//
@@ -235,7 +237,7 @@ void MainDialog::on_readFromFilesCheckBox_clicked()
 {
     if (ui->readFromFilesCheckBox->isChecked())
     {
-        frame_number = 0;
+        _frame_index = 0;
     }
 }
 
@@ -267,7 +269,7 @@ void MainDialog::on_stereoScanButton_clicked()
 
         // reset everything
         visualOdomThread->resetHomographyTotal();
-        frame_number = 0;
+        _frame_index = 0;
         gain_total   = 1;
         ui->modelView->clearAll();
         stereo_thread->clearReconstruction();
@@ -339,12 +341,12 @@ void MainDialog::newStereoImageArrived()
     // save images
     if (stereo_scan && (ui->saveToFilesCheckBox->isChecked()))
     {
-        if (frame_number!=0)
+        if (_frame_index!=0)
         {
             cout << stereo_image->timeDiff(simg.time,last_frame_time) << endl;
         }
         last_frame_time = simg.time;
-        SaveStereoImageThread* save_thread = new SaveStereoImageThread(simg,output_dir,frame_number++);
+        SaveStereoImageThread* save_thread = new SaveStereoImageThread(simg,output_dir,_frame_index++);
         save_thread->start();
         save_stereo_threads.push_back(save_thread);
 
@@ -430,6 +432,10 @@ void MainDialog::newHomographyArrived()
     Matrix H_total = visualOdomThread->getHomographyTotal();
     gain_total *= visualOdomThread->getGain();
     visualOdomThread->pickedUp();
+
+    // Output the homography.
+    std::cout << "Frame index: " << _frame_index << " || " << "Time stamp: " << simg.time.tv_sec << std::endl;
+    std::cout << H_total << std::endl;
 
     // show quad match
     ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
