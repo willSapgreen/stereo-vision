@@ -11,17 +11,21 @@ class PlaneEstimation {
 public:
 
     PlaneEstimation();
-    void computeTransformationFromDisparityMap(float* D,int32_t width,int32_t height,int32_t step,float f_,float cu_,float cv_,float base_);
-    Matrix getTransformation() { return H; }
-    Matrix getPlaneDsi() { return plane_d; }
-    Matrix getPlaneEuclidean() { return plane_e; }
-    float  getPitch() { return pitch; }
+    void computeTransformationFromDisparityMap(float* D,int32_t width,int32_t height,int32_t
+                                               step,float f,float cu,float cv,float base);
+    Matrix getTransformation() { return _H; }
+    Matrix getPlaneDsi() { return _plane_d; }
+    Matrix getPlaneEuclidean() { return _plane_e; }
+    float  getPitch() { return _pitch; }
 
 private:
 
-    struct disp {
-      float u,v,d;
-      disp(float u,float v,float d) : u(u),v(v),d(d) {}
+    struct disp
+    {
+        float u;
+        float v;
+        float d;
+        disp(float u,float v,float d) : u(u),v(v),d(d) {}
     };
 
     std::vector<disp> sparseDisparityGrid (float* D,int32_t width,int32_t height,int32_t step,int32_t* roi,int32_t step_size);
@@ -29,14 +33,17 @@ private:
     void leastSquarePlane(std::vector<disp> &d_list,std::vector<int32_t> &ind);
     void planeDsiTo3d();
 
-    float  f,cu,cv,base;
+    float  _f;
+    float _cu;
+    float _cv;
+    float _base;
 
-    Matrix A;
-    Matrix b;
-    Matrix plane_d;
-    Matrix plane_e;
-    Matrix H;
-    float  pitch;
+    Matrix _A;
+    Matrix _b;
+    Matrix _plane_d;
+    Matrix _plane_e;
+    Matrix _H;
+    float  _pitch;
 };
 
 #endif // PLANEESTIMATION_H

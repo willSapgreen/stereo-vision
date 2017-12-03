@@ -21,21 +21,21 @@ GpxGenerator::~GpxGenerator()
 
 //==============================================================================//
 
-bool GpxGenerator::open( std::string a_GpxFilePath )
+bool GpxGenerator::open( std::string gpxFilePath )
 {
     // When the generator is on processing.
-    if( m_FileStream.is_open() )
+    if( _FileStream.is_open() )
     {
         close();
     }
 
     initialize();
-    m_FilePath = a_GpxFilePath;
-    m_FileStream.open( m_FilePath.c_str() );
+    _FilePath = gpxFilePath;
+    _FileStream.open( _FilePath.c_str() );
 
-    m_GPXTrk = dynamic_cast<gpx::TRK*>( m_GPXRoot->trks().add( m_GPXReport ) );
-    m_GPXTrk->name().add( m_GPXReport )->setValue( m_FilePath.c_str() );
-    m_GPXTrkSeg = dynamic_cast<gpx::TRKSeg*>( m_GPXTrk->trksegs().add( m_GPXReport ) );
+    _GPXTrk = dynamic_cast<gpx::TRK*>( _GPXRoot->trks().add( _GPXReport ) );
+    _GPXTrk->name().add( _GPXReport )->setValue( _FilePath.c_str() );
+    _GPXTrkSeg = dynamic_cast<gpx::TRKSeg*>( _GPXTrk->trksegs().add( _GPXReport ) );
     return true;
 }
 
@@ -43,7 +43,7 @@ bool GpxGenerator::open( std::string a_GpxFilePath )
 
 bool GpxGenerator::is_open() const
 {
-    return m_FileStream.is_open();
+    return _FileStream.is_open();
 }
 
 //==============================================================================//
@@ -55,11 +55,11 @@ bool GpxGenerator::close()
 
 //==============================================================================//
 
-bool GpxGenerator::AddNewPosition(const std::string a_Latitude, const std::string a_Longitude)
+bool GpxGenerator::AddNewPosition(const std::string latitude, const std::string longitude)
 {
-    gpx::WPT *trkpt = dynamic_cast<gpx::WPT*>( m_GPXTrkSeg->trkpts().add( m_GPXReport ) );
-    trkpt->lat().add( m_GPXReport )->setValue( a_Latitude );
-    trkpt->lon().add( m_GPXReport )->setValue( a_Longitude );
+    gpx::WPT *trkpt = dynamic_cast<gpx::WPT*>( _GPXTrkSeg->trkpts().add( _GPXReport ) );
+    trkpt->lat().add( _GPXReport )->setValue( latitude );
+    trkpt->lon().add( _GPXReport )->setValue( longitude );
     return true;
 }
 
@@ -67,11 +67,11 @@ bool GpxGenerator::AddNewPosition(const std::string a_Latitude, const std::strin
 
 bool GpxGenerator::initialize()
 {
-    m_GPXRoot = new gpx::GPX();
-    m_GPXReport = new gpx::ReportCerr();
-    m_GPXRoot->add( "xmlns", gpx::Node::ATTRIBUTE )->setValue( "http://www.topografix.com/GPX/1/1" ); // Some tools need this
-    m_GPXRoot->version().add( m_GPXReport )->setValue( "1.1") ;
-    m_GPXRoot->creator().add( m_GPXReport )->setValue( "GPX" );
+    _GPXRoot = new gpx::GPX();
+    _GPXReport = new gpx::ReportCerr();
+    _GPXRoot->add( "xmlns", gpx::Node::ATTRIBUTE )->setValue( "http://www.topografix.com/GPX/1/1" ); // Some tools need this
+    _GPXRoot->version().add( _GPXReport )->setValue( "1.1") ;
+    _GPXRoot->creator().add( _GPXReport )->setValue( "GPX" );
     return true;
 }
 
@@ -79,36 +79,36 @@ bool GpxGenerator::initialize()
 
 bool GpxGenerator::reset()
 {
-    if( m_FileStream.is_open() )
+    if( _FileStream.is_open() )
     {
-        m_FileStream.close();
+        _FileStream.close();
     }
 
-    if( m_GPXRoot != NULL )
+    if( _GPXRoot != NULL )
     {
-        delete m_GPXRoot;
-        m_GPXRoot = NULL;
+        delete _GPXRoot;
+        _GPXRoot = NULL;
     }
 
-    if( m_GPXReport != NULL )
+    if( _GPXReport != NULL )
     {
-        delete m_GPXReport;
-        m_GPXReport = NULL;
+        delete _GPXReport;
+        _GPXReport = NULL;
     }
 
-    if( m_GPXTrk != NULL )
+    if( _GPXTrk != NULL )
     {
-        delete m_GPXTrk;
-        m_GPXTrk = NULL;
+        delete _GPXTrk;
+        _GPXTrk = NULL;
     }
 
-    if( m_GPXTrkSeg != NULL )
+    if( _GPXTrkSeg != NULL )
     {
-        delete m_GPXTrkSeg;
-        m_GPXTrkSeg = NULL;
+        delete _GPXTrkSeg;
+        _GPXTrkSeg = NULL;
     }
 
-    m_FilePath = "";
+    _FilePath = "";
 
     return true;
 }
@@ -118,9 +118,9 @@ bool GpxGenerator::reset()
 bool GpxGenerator::write()
 {
     gpx::Writer writer;
-    if( m_FileStream.is_open() )
+    if( _FileStream.is_open() )
     {
-        writer.write( m_FileStream, m_GPXRoot, true );
+        writer.write( _FileStream, _GPXRoot, true );
     }
     return true;
 }

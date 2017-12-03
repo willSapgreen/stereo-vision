@@ -13,7 +13,7 @@ class VisualizeThread : public QThread {
 public:
 
   VisualizeThread(View2D *disparityView,View3D *modelView,QObject *parent = 0);
-  void addPoints (std::vector< std::vector<View3D::point_3d> > p_) { p = p_; }
+  void addPoints (std::vector< std::vector<View3D::point_3d> > p) { _p = p; }
 
 protected:
 
@@ -21,9 +21,9 @@ protected:
 
 private:
 
-  View2D *disparityView;
-  View3D *modelView;
-  std::vector< std::vector<View3D::point_3d> > p;
+  View2D* _disparityView;
+  View3D* _modelView;
+  std::vector< std::vector<View3D::point_3d> > _p;
 
 signals:
 

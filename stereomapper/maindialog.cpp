@@ -9,60 +9,60 @@ using namespace std;
 
 MainDialog::MainDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::MainDialog)
+    _ui(new Ui::MainDialog)
 {
     setWindowFlags(Qt::WindowMinMaxButtonsHint);
-    ui->setupUi(this);
-    stereo_image = new StereoImage();
-    time_of_last_frame.tv_sec  = 0;
-    time_of_last_frame.tv_usec = 0;
-    calib = new CalibIOKITTI();
-    capture_mutex = new QMutex();
-    //cam_left      = new FrameCaptureThread(stereo_image,calib,true,capture_mutex);
-    //cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
-    visualOdomThread     = new VisualOdometryThread(calib);
-    stereo_thread = new StereoThread(calib,ui->modelView);
+    _ui->setupUi(this);
+    _stereo_image = new StereoImage();
+    _time_of_last_frame.tv_sec  = 0;
+    _time_of_last_frame.tv_usec = 0;
+    _calib = new CalibIOKITTI();
+    _capture_mutex = new QMutex();
+    //cam_left      = new FrameCaptureThread(_stereo_image,_calib,true,_capture_mutex);
+    //cam_right     = new FrameCaptureThread(_stereo_image,_calib,false,_capture_mutex);
+    _visualOdomThread     = new VisualOdometryThread(_calib);
+    _stereo_thread = new StereoThread(_calib,_ui->modelView);
     _stereo_image_io = new StereoImageIOKITTI();
     _oxts_io = new OxTSIOKITTI();
-    read_thread   = new ReadFromFilesThread(stereo_image, calib, _stereo_image_io, _oxts_io);
-    visualize_thread = new VisualizeThread(ui->disparityView,ui->modelView);
+    _read_thread   = new ReadFromFilesThread(_stereo_image, _calib, _stereo_image_io, _oxts_io);
+    _visualize_thread = new VisualizeThread(_ui->disparityView,_ui->modelView);
 
     // connect to the objects for communication.
-    QObject::connect(stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
-    QObject::connect(visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
-    QObject::connect(stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
-    QObject::connect(calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
+    QObject::connect(_stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
+    QObject::connect(_visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
+    QObject::connect(_stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
+    QObject::connect(_calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
 
     _frame_index = 0;
-    gain_total   = 1;
-    stereo_scan  = false;
-    settings = new QSettings("KIT", "stereomapper");
+    _gain_total   = 1.0F;
+    _stereo_scan  = false;
+    _settings = new QSettings("KIT", "stereomapper");
     QPalette p(palette());
     p.setColor(QPalette::Background, Qt::white);
     setPalette(p);
 
-    ui->shutterSpinBox->setValue(settings->value("shutter_value","100").toInt());
-    ui->modelView->setBackgroundWallFlag(ui->backgroundWallCheckBox->isChecked());
-    ui->modelView->setShowCamerasFlag(ui->showCamerasCheckBox->isChecked());
-    ui->modelView->setGridFlag(ui->gridCheckBox->isChecked());
-    ui->modelView->setWhiteFlag(ui->whiteCheckBox->isChecked());
+    _ui->shutterSpinBox->setValue(_settings->value("shutter_value","100").toInt());
+    _ui->modelView->setBackgroundWallFlag(_ui->backgroundWallCheckBox->isChecked());
+    _ui->modelView->setShowCamerasFlag(_ui->showCamerasCheckBox->isChecked());
+    _ui->modelView->setGridFlag(_ui->gridCheckBox->isChecked());
+    _ui->modelView->setWhiteFlag(_ui->whiteCheckBox->isChecked());
 }
 
 //==============================================================================//
 
 MainDialog::~MainDialog()
 {
-    delete ui;
+    delete _ui;
     //delete cam_left;
     //delete cam_right;
-    delete capture_mutex;
-    delete stereo_image;
-    delete calib;
-    delete visualOdomThread;
-    delete stereo_thread;
-    delete read_thread;
-    delete visualize_thread;
-    delete settings;
+    delete _capture_mutex;
+    delete _stereo_image;
+    delete _calib;
+    delete _visualOdomThread;
+    delete _stereo_thread;
+    delete _read_thread;
+    delete _visualize_thread;
+    delete _settings;
     delete _stereo_image_io;
     delete _oxts_io;
 }
@@ -103,12 +103,12 @@ void MainDialog::keyPressEvent(QKeyEvent * event)
 {
     if (event->key()==Qt::Key_S)
     {
-        save_single_frame = false;
+        _save_single_frame = false;
         on_stereoScanButton_clicked();
     }
     if (event->key()==Qt::Key_F)
     {
-        save_single_frame = true;
+        _save_single_frame = true;
         on_stereoScanButton_clicked();
     }
 }
@@ -117,104 +117,104 @@ void MainDialog::keyPressEvent(QKeyEvent * event)
 
 void MainDialog::on_shutterSpinBox_valueChanged(int )
 {
-    settings->setValue("shutter_value",ui->shutterSpinBox->value());
+    _settings->setValue("shutter_value",_ui->shutterSpinBox->value());
 }
 
 //==============================================================================//
 
 void MainDialog::on_resizeSmallPushButton_clicked()
 {
-    int minw = ui->modelView->minimumWidth();
-    int minh = ui->modelView->minimumHeight();
-    int maxw = ui->modelView->maximumWidth();
-    int maxh = ui->modelView->maximumHeight();
+    int minw = _ui->modelView->minimumWidth();
+    int minh = _ui->modelView->minimumHeight();
+    int maxw = _ui->modelView->maximumWidth();
+    int maxh = _ui->modelView->maximumHeight();
 
-    ui->modelView->setMinimumWidth(320);
-    ui->modelView->setMinimumHeight(480);
-    ui->modelView->setMaximumWidth(320);
-    ui->modelView->setMaximumHeight(480);
-    ui->modelView->setShowCamerasFlag(0);
-    ui->modelView->setGridFlag(0);
+    _ui->modelView->setMinimumWidth(320);
+    _ui->modelView->setMinimumHeight(480);
+    _ui->modelView->setMaximumWidth(320);
+    _ui->modelView->setMaximumHeight(480);
+    _ui->modelView->setShowCamerasFlag(0);
+    _ui->modelView->setGridFlag(0);
 
-    ui->modelView->recordHuman();
+    _ui->modelView->recordHuman();
 
-    ui->modelView->setMinimumWidth (minw);
-    ui->modelView->setMinimumHeight(minh);
-    ui->modelView->setMaximumWidth (maxw);
-    ui->modelView->setMaximumHeight(maxh);
-    ui->modelView->setShowCamerasFlag(ui->showCamerasCheckBox->isChecked());
-    ui->modelView->setGridFlag(ui->gridCheckBox->isChecked());
+    _ui->modelView->setMinimumWidth (minw);
+    _ui->modelView->setMinimumHeight(minh);
+    _ui->modelView->setMaximumWidth (maxw);
+    _ui->modelView->setMaximumHeight(maxh);
+    _ui->modelView->setShowCamerasFlag(_ui->showCamerasCheckBox->isChecked());
+    _ui->modelView->setGridFlag(_ui->gridCheckBox->isChecked());
 }
 
 //==============================================================================//
 
 void MainDialog::on_whiteCheckBox_clicked()
 {
-    ui->modelView->setWhiteFlag(ui->whiteCheckBox->isChecked());
+    _ui->modelView->setWhiteFlag(_ui->whiteCheckBox->isChecked());
 }
 
 //==============================================================================//
 
 void MainDialog::on_gridCheckBox_clicked()
 {
-    ui->modelView->setGridFlag(ui->gridCheckBox->isChecked());
+    _ui->modelView->setGridFlag(_ui->gridCheckBox->isChecked());
 }
 
 //==============================================================================//
 
 void MainDialog::on_recordPosesPushButton_clicked()
 {
-    ui->modelView->playPoses(true);
+    _ui->modelView->playPoses(true);
 }
 
 //==============================================================================//
 
 void MainDialog::on_playPosesPushButton_clicked()
 {
-    ui->modelView->playPoses(false);
+    _ui->modelView->playPoses(false);
 }
 
 //==============================================================================//
 
 void MainDialog::on_deletePosePushButton_clicked()
 {
-    ui->modelView->delPose();
+    _ui->modelView->delPose();
 }
 
 //==============================================================================//
 
 void MainDialog::on_addPosePushButton_clicked()
 {
-    ui->modelView->addPose();
+    _ui->modelView->addPose();
 }
 
 //==============================================================================//
 
 void MainDialog::on_resizePushButton_clicked()
 {
-    ui->modelView->setMinimumWidth(800);
-    ui->modelView->setMinimumHeight(450);
+    _ui->modelView->setMinimumWidth(800);
+    _ui->modelView->setMinimumHeight(450);
 }
 
 //==============================================================================//
 
 void MainDialog::on_showCamerasCheckBox_clicked()
 {
-    ui->modelView->setShowCamerasFlag(ui->showCamerasCheckBox->isChecked());
+    _ui->modelView->setShowCamerasFlag(_ui->showCamerasCheckBox->isChecked());
 }
 
 //==============================================================================//
 
 void MainDialog::on_backgroundWallCheckBox_clicked()
 {
-    ui->modelView->setBackgroundWallFlag(ui->backgroundWallCheckBox->isChecked());
+    _ui->modelView->setBackgroundWallFlag(_ui->backgroundWallCheckBox->isChecked());
 }
 
 //==============================================================================//
 
 void MainDialog::on_backgroundWallSlider_sliderMoved(int position)
 {
-    ui->modelView->setBackgroundWallPosition((float)position/100.0);
+    _ui->modelView->setBackgroundWallPosition((float)position/100.0);
 }
 
 //==============================================================================//
@@ -235,7 +235,7 @@ void MainDialog::on_resetBusButton_clicked()
 
 void MainDialog::on_readFromFilesCheckBox_clicked()
 {
-    if (ui->readFromFilesCheckBox->isChecked())
+    if (_ui->readFromFilesCheckBox->isChecked())
     {
         _frame_index = 0;
     }
@@ -246,55 +246,55 @@ void MainDialog::on_readFromFilesCheckBox_clicked()
 void MainDialog::on_stereoScanButton_clicked()
 {
     // stopping ... (wait for termination of visual odometry and stereo thread)
-    if (stereo_scan)
+    if (_stereo_scan)
     {
         // set button text
-        ui->stereoScanButton->setText("Scan!");
+        _ui->stereoScanButton->setText("Scan!");
 
         // stop stereo scanning
-        stereo_scan = false;
+        _stereo_scan = false;
 
         // terminate all processes
-        visualOdomThread->terminate();
-        stereo_thread->terminate();
-        read_thread->terminate();
-        while (visualOdomThread->isRunning() || stereo_thread->isRunning() || read_thread->isRunning());
+        _visualOdomThread->terminate();
+        _stereo_thread->terminate();
+        _read_thread->terminate();
+        while (_visualOdomThread->isRunning() || _stereo_thread->isRunning() || _read_thread->isRunning());
 
     // starting ...
     }
     else
     {
         // set button text
-        ui->stereoScanButton->setText("Stop!");
+        _ui->stereoScanButton->setText("Stop!");
 
         // reset everything
-        visualOdomThread->resetHomographyTotal();
+        _visualOdomThread->resetHomographyTotal();
         _frame_index = 0;
-        gain_total   = 1;
-        ui->modelView->clearAll();
-        stereo_thread->clearReconstruction();
+        _gain_total   = 1;
+        _ui->modelView->clearAll();
+        _stereo_thread->clearReconstruction();
 
         // create output dir
-        if (ui->saveToFilesCheckBox->isChecked())
+        if (_ui->saveToFilesCheckBox->isChecked())
         {
-            output_dir = createNewOutputDirectory();
+            _output_dir = createNewOutputDirectory();
         }
 
         // start reading from files
-        if (ui->readFromFilesCheckBox->isChecked())
+        if (_ui->readFromFilesCheckBox->isChecked())
         {
-            if (read_thread->isRunning())
+            if (_read_thread->isRunning())
             {
-                read_thread->terminate();
+                _read_thread->terminate();
             }
-            QString input_dir = QFileDialog::getExistingDirectory (this,tr("Open Directory"),settings->value("input_dir_name","/home/geiger").toString(),QFileDialog::ShowDirsOnly);
-            settings->setValue("input_dir_name",input_dir);
-            read_thread->setInputDir(input_dir);
-            read_thread->start();
+            QString input_dir = QFileDialog::getExistingDirectory (this,tr("Open Directory"),_settings->value("input_dir_name","/home/geiger").toString(),QFileDialog::ShowDirsOnly);
+            _settings->setValue("input_dir_name",input_dir);
+            _read_thread->setInputDir(input_dir);
+            _read_thread->start();
         }
 
         // start stereo scanning
-        stereo_scan = true;
+        _stereo_scan = true;
     }
 }
 
@@ -311,8 +311,8 @@ void MainDialog::on_stopCapturingButton_clicked()
 {
     //cam_left->stopRecording();
     //cam_right->stopRecording();
-    ui->captureFromFirewireButton->setEnabled(true);
-    ui->stopCapturingButton->setEnabled(false);
+    _ui->captureFromFirewireButton->setEnabled(true);
+    _ui->stopCapturingButton->setEnabled(false);
 }
 
 //==============================================================================//
@@ -320,12 +320,12 @@ void MainDialog::on_stopCapturingButton_clicked()
 void MainDialog::on_captureFromFirewireButton_clicked()
 {
     /*
-    SelectCamerasDialog dlg(cam_left,cam_right,ui->shutterSpinBox->value(),calib);
+    SelectCamerasDialog dlg(cam_left,cam_right,_ui->shutterSpinBox->value(),_calib);
     dlg.exec();
     if (cam_left->isRunning()||cam_right->isRunning())
     {
-        ui->captureFromFirewireButton->setEnabled(false);
-        ui->stopCapturingButton->setEnabled(true);
+        _ui->captureFromFirewireButton->setEnabled(false);
+        _ui->stopCapturingButton->setEnabled(true);
     }
     */
 }
@@ -335,23 +335,23 @@ void MainDialog::on_captureFromFirewireButton_clicked()
 void MainDialog::newStereoImageArrived()
 {
     // get stereo image deepcopy
-    StereoImage::simage simg(*stereo_image->getStereoImage());
-    stereo_image->pickedUp();
+    StereoImage::simage simg(*_stereo_image->getStereoImage());
+    _stereo_image->pickedUp();
 
     // save images
-    if (stereo_scan && (ui->saveToFilesCheckBox->isChecked()))
+    if (_stereo_scan && (_ui->saveToFilesCheckBox->isChecked()))
     {
         if (_frame_index!=0)
         {
-            cout << stereo_image->timeDiff(simg.time,last_frame_time) << endl;
+            cout << _stereo_image->timeDiff(simg.time,_last_frame_time) << endl;
         }
-        last_frame_time = simg.time;
-        SaveStereoImageThread* save_thread = new SaveStereoImageThread(simg,output_dir,_frame_index++);
+        _last_frame_time = simg.time;
+        SaveStereoImageThread* save_thread = new SaveStereoImageThread(simg,_output_dir,_frame_index);
         save_thread->start();
-        save_stereo_threads.push_back(save_thread);
+        _save_stereo_threads.push_back(save_thread);
 
         // stop capturing if we requested only a single frame!
-        if (save_single_frame)
+        if (_save_single_frame)
         {
             on_stereoScanButton_clicked();
         }
@@ -359,7 +359,7 @@ void MainDialog::newStereoImageArrived()
 
     // check if any of the save threads have finished and must be deleted
     vector<SaveStereoImageThread*> running_save_stereo_threads;
-    for (vector<SaveStereoImageThread*>::iterator it=save_stereo_threads.begin(); it!=save_stereo_threads.end(); it++)
+    for (vector<SaveStereoImageThread*>::iterator it=_save_stereo_threads.begin(); it!=_save_stereo_threads.end(); it++)
     {
         if ((*it)->isRunning())
         {
@@ -370,24 +370,24 @@ void MainDialog::newStereoImageArrived()
             delete *it;
         }
     }
-    save_stereo_threads = running_save_stereo_threads;
+    _save_stereo_threads = running_save_stereo_threads;
 
     // reconstruction mode
-    if (ui->tabWidget->currentIndex()==0)
+    if (_ui->tabWidget->currentIndex()==0)
     {
         // show image
-        if (!stereo_scan)
+        if (!_stereo_scan)
         {
-            ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
-            ui->rightImageView->setImage(simg.I2,simg.width,simg.height);
+            _ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
+            _ui->rightImageView->setImage(simg.I2,simg.width,simg.height);
         }
 
         // start quad matching if idle
-        if (stereo_scan && simg.rectified && !visualOdomThread->isRunning())
+        if (_stereo_scan && simg.rectified && !_visualOdomThread->isRunning())
         {
             QPalette p(palette());
 
-            if (ui->saveToFilesCheckBox->isChecked())
+            if (_ui->saveToFilesCheckBox->isChecked())
             {
                 p.setColor(QPalette::Background, Qt::red);
             }
@@ -397,30 +397,33 @@ void MainDialog::newStereoImageArrived()
             }
 
             setPalette(p);
-            visualOdomThread->pushBack(simg,ui->recordRawOdometryCheckBox->isChecked());
-            visualOdomThread->start();
+            _visualOdomThread->pushBack(simg,_ui->recordRawOdometryCheckBox->isChecked());
+            _visualOdomThread->start();
         }
     }
     // elas mode
-    else if (ui->tabWidget->currentIndex()==1)
+    else if (_ui->tabWidget->currentIndex()==1)
     {
-        ui->elasImageView->setImage(simg.I1,simg.width,simg.height);
-        if (stereo_scan && !stereo_thread->isRunning() && !ui->saveToFilesCheckBox->isChecked())
+        _ui->elasImageView->setImage(simg.I1,simg.width,simg.height);
+        if (_stereo_scan && !_stereo_thread->isRunning() && !_ui->saveToFilesCheckBox->isChecked())
         {
-            stereo_thread->pushBack(simg,ui->subsamplingCheckBox->isChecked());
-            stereo_thread->start();
+            _stereo_thread->pushBack(simg,_ui->subsamplingCheckBox->isChecked());
+            _stereo_thread->start();
         }
     }
     // left full image
-    else if (ui->tabWidget->currentIndex()==2)
+    else if (_ui->tabWidget->currentIndex()==2)
     {
-        ui->leftFullImageView->setImage(simg.I1,simg.width,simg.height);
+        _ui->leftFullImageView->setImage(simg.I1,simg.width,simg.height);
     }
     // right full image
-    else if (ui->tabWidget->currentIndex()==3)
+    else if (_ui->tabWidget->currentIndex()==3)
     {
-        ui->rightFullImageView->setImage(simg.I2,simg.width,simg.height);
+        _ui->rightFullImageView->setImage(simg.I2,simg.width,simg.height);
     }
+
+    // Update frame index.
+    ++_frame_index;
 }
 
 //==============================================================================//
@@ -428,34 +431,35 @@ void MainDialog::newStereoImageArrived()
 void MainDialog::newHomographyArrived()
 {
     // get stereo image deepcopy
-    StereoImage::simage simg(*visualOdomThread->getStereoImage());
-    Matrix H_total = visualOdomThread->getHomographyTotal();
-    gain_total *= visualOdomThread->getGain();
-    visualOdomThread->pickedUp();
+    StereoImage::simage simg(*_visualOdomThread->getStereoImage());
+    Matrix H_total = _visualOdomThread->getHomographyTotal();
+    _gain_total *= _visualOdomThread->getGain();
+    _visualOdomThread->pickedUp();
 
     // Output the homography.
-    std::cout << "Frame index: " << _frame_index << " || " << "Time stamp: " << simg.time.tv_sec << std::endl;
+    std::cout << "Frame index: " << _frame_index << " || "
+              << "Time stamp: " << ( simg.time.tv_sec * 1000 + simg.time.tv_usec ) << std::endl;
     std::cout << H_total << std::endl;
 
     // show quad match
-    ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
-    ui->rightImageView->setImage(simg.I2,simg.width,simg.height);
+    _ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
+    _ui->rightImageView->setImage(simg.I2,simg.width,simg.height);
 
     // show images
-    ui->leftImageView->setMatches(visualOdomThread->getMatches(),visualOdomThread->getInliers(),true);
-    ui->rightImageView->setMatches(visualOdomThread->getMatches(),visualOdomThread->getInliers(),false);
+    _ui->leftImageView->setMatches(_visualOdomThread->getMatches(),_visualOdomThread->getInliers(),true);
+    _ui->rightImageView->setMatches(_visualOdomThread->getMatches(),_visualOdomThread->getInliers(),false);
 
     // start dense stereo matching if idle
-    if (stereo_scan && !stereo_thread->isRunning() && !ui->saveToFilesCheckBox->isChecked())
+    if (_stereo_scan && !_stereo_thread->isRunning() && !_ui->saveToFilesCheckBox->isChecked())
     {
-        stereo_thread->pushBack(simg,H_total,gain_total);
-        stereo_thread->start();
-        gain_total = 1;
-        //ui->modelView->addCamera(H_total,0.08,true);
+        _stereo_thread->pushBack(simg,H_total,_gain_total);
+        _stereo_thread->start();
+        _gain_total = 1;
+        //_ui->modelView->addCamera(H_total,0.08,true);
     }
     else
     {
-        //ui->modelView->addCamera(H_total,0.05,false);
+        //_ui->modelView->addCamera(H_total,0.05,false);
     }
 }
 
@@ -464,44 +468,44 @@ void MainDialog::newHomographyArrived()
 void MainDialog::newDisparityMapArrived()
 {
     // get stereo image deepcopy
-    StereoImage::simage simg(*stereo_thread->getStereoImage());
+    StereoImage::simage simg(*_stereo_thread->getStereoImage());
 
-    if (ui->tabWidget->currentIndex()==0)
+    if (_ui->tabWidget->currentIndex()==0)
     {
-        ui->disparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width,simg.height);
+        _ui->disparityView->setColorImage(_stereo_thread->getColorDisparityMap(),simg.width,simg.height);
     }
     else
     {
-        if (!ui->subsamplingCheckBox->isChecked())
+        if (!_ui->subsamplingCheckBox->isChecked())
         {
-            ui->elasDisparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width,simg.height);
+            _ui->elasDisparityView->setColorImage(_stereo_thread->getColorDisparityMap(),simg.width,simg.height);
         }
       else
         {
-            ui->elasDisparityView->setColorImage(stereo_thread->getColorDisparityMap(),simg.width/2,simg.height/2);
+            _ui->elasDisparityView->setColorImage(_stereo_thread->getColorDisparityMap(),simg.width/2,simg.height/2);
         }
     }
 
-    if (stereo_scan && ui->tabWidget->currentIndex()==0)
+    if (_stereo_scan && _ui->tabWidget->currentIndex()==0)
     {
-        ui->modelView->addCamera(stereo_thread->getHomographyTotal(),0.1,true);
-        ui->modelView->addPoints(stereo_thread->getPoints());
+        _ui->modelView->addCamera(_stereo_thread->getHomographyTotal(),0.1,true);
+        _ui->modelView->addPoints(_stereo_thread->getPoints());
     }
 
-    stereo_thread->pickedUp();
+    _stereo_thread->pickedUp();
 }
 
 //==============================================================================//
 
 void MainDialog::onNewCalibrationData()
 {
-    std::cout << "on new calibration data";
+    std::cout << "on new _calibration data";
     std::cout << std::endl;
-    calib->pickedUp();
-    calib->showCalibrationParameters();
+    _calib->pickedUp();
+    _calib->showCalibrationParameters();
 
     /*
-    // Stop, disconnect, and delete the following threads which need the calibration data.
+    // Stop, disconnect, and delete the following threads which need the _calibration data.
     if( cam_left->isRunning() )
     {
         cam_left->stopRecording();
@@ -521,33 +525,33 @@ void MainDialog::onNewCalibrationData()
     cam_right = 0;
     */
 
-    if( visualOdomThread->isRunning() )
+    if( _visualOdomThread->isRunning() )
     {
-        visualOdomThread->quit();
-        while( visualOdomThread->isRunning() );
+        _visualOdomThread->quit();
+        while( _visualOdomThread->isRunning() );
     }
-    visualOdomThread->disconnect();
-    delete visualOdomThread;
-    visualOdomThread = 0;
+    _visualOdomThread->disconnect();
+    delete _visualOdomThread;
+    _visualOdomThread = 0;
 
-    if( stereo_thread->isRunning() )
+    if( _stereo_thread->isRunning() )
     {
-        stereo_thread->quit();
-        while( stereo_thread->isRunning() );
+        _stereo_thread->quit();
+        while( _stereo_thread->isRunning() );
     }
-    stereo_thread->disconnect();
-    delete stereo_thread;
-    stereo_thread = 0;
+    _stereo_thread->disconnect();
+    delete _stereo_thread;
+    _stereo_thread = 0;
 
-    // Generate the new threads which need the calibration data.
-    //cam_left      = new FrameCaptureThread(stereo_image,calib,true,capture_mutex);
-    //cam_right     = new FrameCaptureThread(stereo_image,calib,false,capture_mutex);
-    visualOdomThread     = new VisualOdometryThread(calib);
-    stereo_thread = new StereoThread(calib,ui->modelView);
+    // Generate the new threads which need the _calibration data.
+    //cam_left      = new FrameCaptureThread(_stereo_image,_calib,true,_capture_mutex);
+    //cam_right     = new FrameCaptureThread(_stereo_image,_calib,false,_capture_mutex);
+    _visualOdomThread     = new VisualOdometryThread(_calib);
+    _stereo_thread = new StereoThread(_calib,_ui->modelView);
 
     // connect to the objects for communication.
-    QObject::connect(stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
-    QObject::connect(visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
-    QObject::connect(stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
-    QObject::connect(calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
+    QObject::connect(_stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
+    QObject::connect(_visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
+    QObject::connect(_stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
+    QObject::connect(_calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
 }

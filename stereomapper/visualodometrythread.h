@@ -18,15 +18,15 @@ public:
     VisualOdometryThread(CalibIOKITTI *calib,QObject *parent = 0);
     ~VisualOdometryThread();
     void pushBack(StereoImage::simage &s,bool record_raw_odometry_=false);
-    std::vector<Matcher::p_match> getMatches() { return visualOdomStereo->getMatches(); }
-    std::vector<bool> getInliers() { return inliers; }
-    StereoImage::simage* getStereoImage() { return simg; }
-    Matrix getHomographyTotal() { return H_total; }
-    float getGain() { return gain; }
-    void resetHomographyTotal() { H_total.eye(); }
-    void pickedUp() { picked = true; }
+    std::vector<Matcher::p_match> getMatches() { return _visualOdomStereo->getMatches(); }
+    std::vector<bool> getInliers() { return _inliers; }
+    StereoImage::simage* getStereoImage() { return _simg; }
+    Matrix getHomographyTotal() { return _H_total; }
+    float getGain() { return _gain; }
+    void resetHomographyTotal() { _H_total.eye(); }
+    void pickedUp() { _picked = true; }
 
-    Matrix H_total;
+    Matrix _H_total;
 
 protected:
 
@@ -40,17 +40,18 @@ private:
                ((float)(a.tv_usec-b.tv_usec))*1e-6;
     }
 
-    VisualOdometryStereo           *visualOdomStereo;
-    StereoImage::simage            *simg;
-    CalibIOKITTI                   *calib;
+    VisualOdometryStereo* _visualOdomStereo;
+    StereoImage::simage*  _simg;
+    CalibIOKITTI*         _calib;
     //Matcher                      *matcher;
 
     //std::vector<Matcher::p_match>   matches;
-    std::vector<bool>               inliers;
-    timeval                         time_prev,time_curr;
-    bool                            record_raw_odometry;
-    float                           gain;
-    bool                            picked;
+    std::vector<bool>               _inliers;
+    timeval                         _time_prev;
+    timeval                         _time_curr;
+    bool                            _record_raw_odometry;
+    float                           _gain;
+    bool                            _picked;
 
 signals:
 

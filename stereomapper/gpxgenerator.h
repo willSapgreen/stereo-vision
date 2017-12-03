@@ -44,7 +44,7 @@ public:
      * [in]  a_GpsFilePath:    the path of the GPS file.
      * [out] true if opening the file works.
      */
-    bool open( std::string a_GpxFilePath );
+    bool open( std::string gpxFilePath );
 
     /*
      * Check if the file is opened.
@@ -64,39 +64,39 @@ public:
      * [in]  a_Longtitude:  the longtitude of the new position. Unit: radian.
      * [out] true if adding the new position works.
      */
-    bool AddNewPosition( const std::string a_Latitude, const std::string a_Longitude );
+    bool AddNewPosition( const std::string latitude, const std::string longitude );
 
 private:
 
     /*
      * The root node of a GPX document.
      */
-    gpx::GPX* m_GPXRoot;
+    gpx::GPX* _GPXRoot;
 
     /*
      * The report on cerr class for reporting warnings.
      */
-    gpx::ReportCerr* m_GPXReport;
+    gpx::ReportCerr* _GPXReport;
 
     /*
      * The track class.
      */
-    gpx::TRK* m_GPXTrk;
+    gpx::TRK* _GPXTrk;
 
     /*
      * The track segment class.
      */
-    gpx::TRKSeg* m_GPXTrkSeg;
+    gpx::TRKSeg* _GPXTrkSeg;
 
     /*
      * The output file stream.
      */
-    std::ofstream m_FileStream;
+    std::ofstream _FileStream;
 
     /*
      * The written GPX file path.
      */
-    std::string m_FilePath;
+    std::string _FilePath;
 
     /*
      * Reset the GPX generator.

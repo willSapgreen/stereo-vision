@@ -68,25 +68,25 @@ public:
             if (src.I1!=0)
             {
                 I1 = (unsigned char*)malloc(src.step*src.height*sizeof(unsigned char));
-                memcpy(I1,src.I1,src.step*src.height*sizeof(unsigned char));
+                memcpy(I1, src.I1, src.step*src.height*sizeof(unsigned char));
             }
 
             if (src.I2!=0)
             {
                 I2 = (unsigned char*)malloc(src.step*src.height*sizeof(unsigned char));
-                memcpy(I2,src.I2,src.step*src.height*sizeof(unsigned char));
+                memcpy(I2, src.I2, src.step*src.height*sizeof(unsigned char));
             }
 
             if (src.D1!=0)
             {
                 D1 = (float*)malloc(src.step*src.height*sizeof(float));
-                memcpy(D1,src.D1,src.step*src.height*sizeof(float));
+                memcpy(D1, src.D1, src.step*src.height*sizeof(float));
             }
 
             if (src.D2!=0)
             {
-                D2 = (float*)malloc(src.step*src.height*sizeof(float));
-                memcpy(D2,src.D2,src.step*src.height*sizeof(float));
+                D2 = (float*)malloc(src.step * src.height * sizeof(float));
+                memcpy(D2, src.D2, src.step * src.height * sizeof(float));
             }
 
             width     = src.width;
@@ -109,9 +109,9 @@ public:
     };
 
     void setImage( unsigned char* data,int width,int height,int step,bool cam_left,bool rectified,timeval captured_time );
-    bool isRectified() { return 0; }
-    simage* getStereoImage() { return simg; }
-    void pickedUp() { picked = true; }
+    bool isRectified() { return _simg->rectified; }
+    simage* getStereoImage() { return _simg; }
+    void pickedUp() { _picked = true; }
     void histogramNormalization(unsigned char* I,const int &width,const int &height,const int &step);
 
     float timeDiff(timeval a,timeval b)
@@ -154,10 +154,10 @@ private:
         }
     };
 
-    image  *img_left;
-    image  *img_right;
-    simage *simg;
-    bool    picked;
+    image*  _img_left;
+    image*  _img_right;
+    simage* _simg;
+    bool    _picked;
 
 signals:
 

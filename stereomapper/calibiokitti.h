@@ -63,12 +63,12 @@ public:
     /*
      * Check if the calibration parameters are loaded.
      */
-    bool calibrated() const { return m_calibrated; }
+    bool calibrated() const { return _calibrated; }
 
     /*
      * The signal receiver will use this function to confirm the signal is picked.
      */
-    void pickedUp() { m_picked = true; }
+    void pickedUp() { _picked = true; }
 
     /*
      * In KITTI, there are four cameras.
@@ -77,30 +77,77 @@ public:
      * 1 is right gray camera.
      * 2 is left color camera.
      * 3 is right color camera.
+     *
+     * Example
+     * # calibration time.
+     * calib_time: 09-Jan-2012 13:57:47
+     *
+     * # TODO: I DO NOT KNOW.
+     * corner_dist: 9.950000e-02
+     *
+     * # original image size.
+     * S_00: 1.392000e+03 5.120000e+02
+     *
+     * # Instrinsic parameters calibration matrix for camera 0.
+     * # Reference: http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
+     * # Purpose: transform the point in camera coordinate to image coordinate.
+     * K_00: 9.842439e+02 0.000000e+00 6.900000e+02 0.000000e+00 9.808141e+02 2.331966e+02 0.000000e+00 0.000000e+00 1.000000e+00
+     *
+     * # Distortion cofficients for camera 0.
+     * # Reference: http://docs.opencv.org/2.4/doc/tutorials/calib3d/camera_calibration/camera_calibration.html
+     * # Purpose: correct the distortion in image coordinate.
+     * D_00: -3.728755e-01 2.037299e-01 2.219027e-03 1.383707e-03 -7.233722e-02
+     *
+     * # Rotation matrix from camera 0 to camera 0.
+     * # Reference: http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#stereorectify
+     * # Purpose: present the rotation relationship between two cameras( observed at camera 0 )
+     * R_00: 1.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 1.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 1.000000e+00
+     *
+     * # Translation matrix from camera 0 to camera 0.
+     * # Reference: http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#stereorectify
+     * # Purpose: present the translation relationship between two cameras( observed at camera 0 )
+     * T_00: 2.573699e-16 -1.059758e-16 1.614870e-16
+     *
+     * # Image size after rectification.
+     * S_rect_00: 1.242000e+03 3.750000e+02
+     *
+     * # Rectifying rotation matrix.
+     * # Reference: https://en.wikipedia.org/wiki/Image_rectification
+     * # Purpose: transform the origin camera coordinate to rectified camera coordinate.
+     *            The left/right rectified camera coordinates are aligned in parallel.
+     * R_rect_00: 9.999239e-01 9.837760e-03 -7.445048e-03 -9.869795e-03 9.999421e-01 -4.278459e-03 7.402527e-03 4.351614e-03 9.999631e-01
+     *
+     * # Projection matrix after rectification.
+     * # Reference: http://wiki.ros.org/image_pipeline/CameraInfo
+     * # Reference: https://stackoverflow.com/questions/29910548/how-do-i-get-the-projection-matrix-of-a-camera-after-stereo-rectification
+     * # Purpose: transform the point in world coordinate to rectified image coordinate.
+     * P_rect_00: 7.215377e+02 0.000000e+00 6.095593e+02 0.000000e+00 0.000000e+00 7.215377e+02 1.728540e+02 0.000000e+00 0.000000e+00 0.000000e+00 1.000000e+00 0.000000e+00
      */
-    std::vector<std::string> m_cam_to_cam_calib_time;
-    cv::Mat m_cam_to_cam_corner_dist;
-    std::array< cv::Mat, KITTI_CAMERA_NUM> m_cam_to_cam_S;
-    std::array< cv::Mat, KITTI_CAMERA_NUM> m_cam_to_cam_K;
-    std::array< cv::Mat, KITTI_CAMERA_NUM> m_cam_to_cam_D;
-    std::array< cv::Mat, KITTI_CAMERA_NUM> m_cam_to_cam_R;
-    std::array< cv::Mat, KITTI_CAMERA_NUM> m_cam_to_cam_T;
-    std::array< cv::Mat, KITTI_CAMERA_NUM> m_cam_to_cam_S_rect;
-    std::array< cv::Mat, KITTI_CAMERA_NUM> m_cam_to_cam_R_rect;
-    std::array< cv::Mat, KITTI_CAMERA_NUM> m_cam_to_cam_P_rect;
 
-    std::vector<std::string> m_velo_to_cam_calib_time;
-    cv::Mat m_velo_to_cam_R;
-    cv::Mat m_velo_to_cam_T;
-    cv::Mat m_velo_to_cam_delta_f;
-    cv::Mat m_velo_to_cam_delta_c;
+    // TODO: replace cv::Mat with libviso2/matrix.
+    std::vector<std::string> _cam_to_cam_calib_time;
+    cv::Mat _cam_to_cam_corner_dist;
+    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_S; // original image size. 1x2
+    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_K; // calibration matrices( unrectified ). 3x3
+    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_D; // distrotion matrices ( unrectified ). 1x5
+    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_R; // rotation matrices from camera 0 to camera i. 3x3
+    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_T; // translation matrices from camera 0 to camera i. 1x3
+    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_S_rect; // image size after rectification. 1x2
+    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_R_rect; // rectifying rotation matrix. 3x3
+    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_P_rect; // projection matrix after rectification. 3x4
 
-    std::vector<std::string> m_imu_to_velo_calib_time;
-    cv::Mat m_imu_to_velo_R;
-    cv::Mat m_imu_to_velo_T;
+    std::vector<std::string> _velo_to_cam_calib_time;
+    cv::Mat _velo_to_cam_R;
+    cv::Mat _velo_to_cam_T;
+    cv::Mat _velo_to_cam_delta_f;
+    cv::Mat _velo_to_cam_delta_c;
 
-    bool m_picked;
-    bool m_calibrated;
+    std::vector<std::string> _imu_to_velo_calib_time;
+    cv::Mat _imu_to_velo_R;
+    cv::Mat _imu_to_velo_T;
+
+    bool _picked;
+    bool _calibrated;
 
 private:
 

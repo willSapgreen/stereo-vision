@@ -9,18 +9,18 @@ using namespace std;
 
 StereoImage::StereoImage(QObject *parent):QObject(parent)
 {
-    img_left  = new image();
-    img_right = new image();
-    simg      = new simage();
+    _img_left  = new image();
+    _img_right = new image();
+    _simg      = new simage();
 }
 
 //==============================================================================//
 
 StereoImage::~StereoImage()
 {
-    if (img_left!=0)   { delete img_left;  img_left  = 0; }
-    if (img_right!=0)  { delete img_right; img_right = 0; }
-    if (simg!=0)       { delete simg;      simg      = 0; }
+    if (_img_left!=0)   { delete _img_left;  _img_left  = 0; }
+    if (_img_right!=0)  { delete _img_right; _img_right = 0; }
+    if (_simg!=0)       { delete _simg;      _simg      = 0; }
 }
 
 //==============================================================================//
@@ -28,10 +28,10 @@ StereoImage::~StereoImage()
 void StereoImage::setImage(unsigned char* data,int width,int height,int step,bool cam_left,bool rectified,timeval captured_time )
 {
     // get pointer to data
-    image *img = img_right;
+    image *img = _img_right;
     if (cam_left)
     {
-        img = img_left;
+        img = _img_left;
     }
 
     // if width or height has changed => free old & allocate new memory block
@@ -55,35 +55,35 @@ void StereoImage::setImage(unsigned char* data,int width,int height,int step,boo
     memcpy(img->data,data,step*height*sizeof(unsigned char));
 
     // do we have a valid stereo frame (conservative: 10ms)? => copy it!
-    if( fabs(timeDiff(img_left->time,img_right->time)) < 10 )
+    if( fabs(timeDiff(_img_left->time,_img_right->time)) < 10 )
     {
         // do both frames have same size?
-        if (img_left->width==img_right->width && img_left->height==img_right->height && img_left->step==img_right->step)
+        if (_img_left->width==_img_right->width && _img_left->height==_img_right->height && _img_left->step==_img_right->step)
         {
             // if width or height has changed => free old & allocate new memory block
-            if (img_left->width!=simg->width || img_left->height!=simg->height || img_left->step!=simg->step)
+            if (_img_left->width!=_simg->width || _img_left->height!=_simg->height || _img_left->step!=_simg->step)
             {
-                if (simg->I1!=0) { free(simg->I1); simg->I1 = 0; }
-                if (simg->I2!=0) { free(simg->I2); simg->I2 = 0; }
-                simg->I1     = (unsigned char*)malloc(img_left->step*img_left->height*sizeof(unsigned char));
-                simg->I2     = (unsigned char*)malloc(img_left->step*img_left->height*sizeof(unsigned char));
-                simg->width  = img_left->width;
-                simg->height = img_left->height;
-                simg->step   = img_left->step;
+                if (_simg->I1!=0) { free(_simg->I1); _simg->I1 = 0; }
+                if (_simg->I2!=0) { free(_simg->I2); _simg->I2 = 0; }
+                _simg->I1     = (unsigned char*)malloc(_img_left->step*_img_left->height*sizeof(unsigned char));
+                _simg->I2     = (unsigned char*)malloc(_img_left->step*_img_left->height*sizeof(unsigned char));
+                _simg->width  = _img_left->width;
+                _simg->height = _img_left->height;
+                _simg->step   = _img_left->step;
             }
 
             // copy timestamp and set rectification flag
-            simg->time      = img_left->time;
-            simg->rectified = rectified;
+            _simg->time      = _img_left->time;
+            _simg->rectified = rectified;
 
             // copy data from single images to stereo images
-            memcpy(simg->I1,img_left->data,simg->step*simg->height*sizeof(unsigned char));
-            memcpy(simg->I2,img_right->data,simg->step*simg->height*sizeof(unsigned char));
+            memcpy(_simg->I1,_img_left->data,_simg->step*_simg->height*sizeof(unsigned char));
+            memcpy(_simg->I2,_img_right->data,_simg->step*_simg->height*sizeof(unsigned char));
 
             // signal to main dialog that we have new data
-            picked = false;
+            _picked = false;
             emit newStereoImageArrived();
-            while (!picked) usleep(1000);
+            while (!_picked) usleep(1000);
         }
     }
 }

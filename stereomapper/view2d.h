@@ -15,7 +15,7 @@ public:
     void setImage(unsigned char* data,int width,int height);
     void setColorImage(float* data,int width,int height);
     void setMatches(const std::vector<Matcher::p_match> &m,const std::vector<bool> &i,bool l);
-    void clearMatches() { matches.clear(); }
+    void clearMatches() { _matches.clear(); }
 
 private:
 
@@ -24,13 +24,14 @@ private:
     void resizeGL(int width, int height);
 
     // image
-    GLuint image_texture;
-    int    image_width,image_height;
+    GLuint _image_texture;
+    int    _image_width;
+    int    _image_height;
 
     // matches
-    std::vector<Matcher::p_match> matches;
-    std::vector<bool>             inliers;
-    bool                          left_image;
+    std::vector<Matcher::p_match> _matches;
+    std::vector<bool>             _inliers;
+    bool                          _left_image;
 
 signals:
 

@@ -48,6 +48,7 @@ bool StereoImageIOKITTI::fetchGrayStereoImage(const std::string& left_images_dir
         std::cout << "ERROR: left and right gray timestamp lines counts are not consistent" << std::endl;
         return false;
     }
+
     _images_number = left_line_count;
     time_stamp_stream[GRAY_LEFT].clear();
     time_stamp_stream[GRAY_RIGHT].clear();

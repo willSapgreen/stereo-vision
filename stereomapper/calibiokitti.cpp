@@ -5,8 +5,8 @@ using namespace std;
 
 CalibIOKITTI::CalibIOKITTI( QObject* a_parent )
     : QObject( a_parent )
-    , m_picked(false)
-    , m_calibrated(false)
+    , _picked(false)
+    , _calibrated(false)
 {
 }
 
@@ -28,12 +28,12 @@ bool CalibIOKITTI::readCalibFromFiles(const std::string& a_cam_cam_calib_file_na
                    readVeloToCamCalibFromFile( a_velo_cam_calib_file_name );
     if (success)
     {
-        m_calibrated = true;
+        _calibrated = true;
 
         //signal to main dialog that we have the new calibration data.
-        m_picked = false;
+        _picked = false;
         emit newCalibrationData();
-        while (!m_picked) usleep(1000);
+        while (!_picked) usleep(1000);
     }
 
     return success;
@@ -48,81 +48,81 @@ void CalibIOKITTI::showCalibrationParameters() const
     std::cout << "Cam-To-Cam calibration parameters:";
     std::cout << std::endl << "========================" << std::endl << std::endl;
     std::cout << "Calibration time: ";
-    for (uint32_t i=0; i<m_cam_to_cam_calib_time.size(); i++)
+    for (uint32_t i=0; i<_cam_to_cam_calib_time.size(); i++)
     {
-        std::cout << m_cam_to_cam_calib_time[i] << " ";
+        std::cout << _cam_to_cam_calib_time[i] << " ";
     }
     std::cout << std::endl << std::endl;
-    showCvMat(m_cam_to_cam_corner_dist, "corner_dist");
+    showCvMat(_cam_to_cam_corner_dist, "corner_dist");
     for (int i = 0; i < KITTI_CAMERA_NUM; ++i)
     {
-        showCvMat(m_cam_to_cam_S[i],"S0"+std::to_string(i));
-        showCvMat(m_cam_to_cam_K[i],"K0"+std::to_string(i));
-        showCvMat(m_cam_to_cam_D[i],"D0"+std::to_string(i));
-        showCvMat(m_cam_to_cam_R[i],"R0"+std::to_string(i));
-        showCvMat(m_cam_to_cam_T[i],"T0"+std::to_string(i));
-        showCvMat(m_cam_to_cam_S_rect[i],"S_rect0"+std::to_string(i));
-        showCvMat(m_cam_to_cam_R_rect[i],"R_rect0"+std::to_string(i));
-        showCvMat(m_cam_to_cam_P_rect[i],"P_rect0"+std::to_string(i));
+        showCvMat(_cam_to_cam_S[i],"S0"+std::to_string(i));
+        showCvMat(_cam_to_cam_K[i],"K0"+std::to_string(i));
+        showCvMat(_cam_to_cam_D[i],"D0"+std::to_string(i));
+        showCvMat(_cam_to_cam_R[i],"R0"+std::to_string(i));
+        showCvMat(_cam_to_cam_T[i],"T0"+std::to_string(i));
+        showCvMat(_cam_to_cam_S_rect[i],"S_rect0"+std::to_string(i));
+        showCvMat(_cam_to_cam_R_rect[i],"R_rect0"+std::to_string(i));
+        showCvMat(_cam_to_cam_P_rect[i],"P_rect0"+std::to_string(i));
     }
 
     std::cout << std::endl << "========================" << std::endl;
     std::cout << "Velo-To-Cam calibration parameters:";
     std::cout << std::endl << "========================" << std::endl << std::endl;
     std::cout << "Calibration time: ";
-    for (uint32_t i=0; i<m_velo_to_cam_calib_time.size(); i++)
+    for (uint32_t i=0; i<_velo_to_cam_calib_time.size(); i++)
     {
-        std::cout << m_velo_to_cam_calib_time[i] << " ";
+        std::cout << _velo_to_cam_calib_time[i] << " ";
     }
     std::cout << std::endl << std::endl;
-    showCvMat(m_velo_to_cam_R,"R");
-    showCvMat(m_velo_to_cam_T,"T");
-    showCvMat(m_velo_to_cam_delta_f,"delta_f");
-    showCvMat(m_velo_to_cam_delta_c,"delta_c");
+    showCvMat(_velo_to_cam_R,"R");
+    showCvMat(_velo_to_cam_T,"T");
+    showCvMat(_velo_to_cam_delta_f,"delta_f");
+    showCvMat(_velo_to_cam_delta_c,"delta_c");
 
     std::cout << std::endl << "========================" << std::endl;
     std::cout << "IMU-To-Cam calibration parameters:";
     std::cout << std::endl << "========================" << std::endl << std::endl;
     std::cout << "Calibration time: ";
-    for (uint32_t i=0; i<m_imu_to_velo_calib_time.size(); i++)
+    for (uint32_t i=0; i<_imu_to_velo_calib_time.size(); i++)
     {
-        std::cout << m_imu_to_velo_calib_time[i] << " ";
+        std::cout << _imu_to_velo_calib_time[i] << " ";
     }
     std::cout << std::endl << std::endl;
-    showCvMat(m_imu_to_velo_R,"R");
-    showCvMat(m_imu_to_velo_T,"T");
+    showCvMat(_imu_to_velo_R,"R");
+    showCvMat(_imu_to_velo_T,"T");
 }
 
 //==============================================================================//
 
 void CalibIOKITTI::clear()
 {
-    m_cam_to_cam_calib_time.clear();
-     m_cam_to_cam_corner_dist.release();
+    _cam_to_cam_calib_time.clear();
+     _cam_to_cam_corner_dist.release();
     for (int i = 0; i < KITTI_CAMERA_NUM; ++i)
     {
-        m_cam_to_cam_S[i].release();
-        m_cam_to_cam_K[i].release();
-        m_cam_to_cam_D[i].release();
-        m_cam_to_cam_R[i].release();
-        m_cam_to_cam_T[i].release();
-        m_cam_to_cam_S_rect[i].release();
-        m_cam_to_cam_R_rect[i].release();
-        m_cam_to_cam_P_rect[i].release();
+        _cam_to_cam_S[i].release();
+        _cam_to_cam_K[i].release();
+        _cam_to_cam_D[i].release();
+        _cam_to_cam_R[i].release();
+        _cam_to_cam_T[i].release();
+        _cam_to_cam_S_rect[i].release();
+        _cam_to_cam_R_rect[i].release();
+        _cam_to_cam_P_rect[i].release();
     }
 
-    m_velo_to_cam_calib_time.clear();
-    m_velo_to_cam_R.release();
-    m_velo_to_cam_T.release();
-    m_velo_to_cam_delta_f.release();
-    m_velo_to_cam_delta_c.release();
+    _velo_to_cam_calib_time.clear();
+    _velo_to_cam_R.release();
+    _velo_to_cam_T.release();
+    _velo_to_cam_delta_f.release();
+    _velo_to_cam_delta_c.release();
 
-    m_imu_to_velo_calib_time.clear();
-    m_imu_to_velo_R.release();
-    m_imu_to_velo_T.release();
+    _imu_to_velo_calib_time.clear();
+    _imu_to_velo_R.release();
+    _imu_to_velo_T.release();
 
-    m_picked = false;
-    m_calibrated = false;
+    _picked = false;
+    _calibrated = false;
 }
 
 //==============================================================================//
@@ -279,28 +279,28 @@ bool CalibIOKITTI::readCamToCamCalibFromFile(const std::string& a_calib_file_nam
         return false;
     }
 
-    readCalibFileString(calib_file, "calib_time:", m_cam_to_cam_calib_time);
-    readCalibFileMatrix(calib_file, "corner_dist:", 1, 1, m_cam_to_cam_corner_dist);
+    readCalibFileString(calib_file, "calib_time:", _cam_to_cam_calib_time);
+    readCalibFileMatrix(calib_file, "corner_dist:", 1, 1, _cam_to_cam_corner_dist);
     for (int i = 0; i < KITTI_CAMERA_NUM; ++i)
     {
         std::string index = std::to_string(i);
 
         std::string name = "S_0" + index + ":";
-        readCalibFileMatrix(calib_file, name.c_str(), 1, 2, m_cam_to_cam_S[i]);
+        readCalibFileMatrix(calib_file, name.c_str(), 1, 2, _cam_to_cam_S[i]);
         name = "K_0" + index + ":";
-        readCalibFileMatrix(calib_file, name.c_str(), 3, 3, m_cam_to_cam_K[i]);
+        readCalibFileMatrix(calib_file, name.c_str(), 3, 3, _cam_to_cam_K[i]);
         name = "D_0" + index + ":";
-        readCalibFileMatrix(calib_file, name.c_str(), 1, 5, m_cam_to_cam_D[i]);
+        readCalibFileMatrix(calib_file, name.c_str(), 1, 5, _cam_to_cam_D[i]);
         name = "R_0" + index + ":";
-        readCalibFileMatrix(calib_file, name.c_str(), 3, 3, m_cam_to_cam_R[i]);
+        readCalibFileMatrix(calib_file, name.c_str(), 3, 3, _cam_to_cam_R[i]);
         name = "T_0" + index + ":";
-        readCalibFileMatrix(calib_file, name.c_str(), 1, 3, m_cam_to_cam_T[i]);
+        readCalibFileMatrix(calib_file, name.c_str(), 1, 3, _cam_to_cam_T[i]);
         name = "S_rect_0" + index + ":";
-        readCalibFileMatrix(calib_file, name.c_str(), 1, 2, m_cam_to_cam_S_rect[i]);
+        readCalibFileMatrix(calib_file, name.c_str(), 1, 2, _cam_to_cam_S_rect[i]);
         name = "R_rect_0" + index + ":";
-        readCalibFileMatrix(calib_file, name.c_str(), 3, 3, m_cam_to_cam_R_rect[i]);
+        readCalibFileMatrix(calib_file, name.c_str(), 3, 3, _cam_to_cam_R_rect[i]);
         name = "P_rect_0" + index + ":";
-        readCalibFileMatrix(calib_file, name.c_str(), 3, 4, m_cam_to_cam_P_rect[i]);
+        readCalibFileMatrix(calib_file, name.c_str(), 3, 4, _cam_to_cam_P_rect[i]);
     }
 
     // close file and return success
@@ -320,11 +320,11 @@ bool CalibIOKITTI::readVeloToCamCalibFromFile(const std::string& a_calib_file_na
         return false;
     }
 
-    readCalibFileString(calib_file, "calib_time:", m_velo_to_cam_calib_time);
-    readCalibFileMatrix(calib_file, "R:", 3, 3, m_velo_to_cam_R);
-    readCalibFileMatrix(calib_file, "T:", 1, 3, m_velo_to_cam_T);
-    readCalibFileMatrix(calib_file, "delta_t:", 1, 2, m_velo_to_cam_delta_f);
-    readCalibFileMatrix(calib_file, "delta_c:", 1, 2, m_velo_to_cam_delta_c);
+    readCalibFileString(calib_file, "calib_time:", _velo_to_cam_calib_time);
+    readCalibFileMatrix(calib_file, "R:", 3, 3, _velo_to_cam_R);
+    readCalibFileMatrix(calib_file, "T:", 1, 3, _velo_to_cam_T);
+    readCalibFileMatrix(calib_file, "delta_t:", 1, 2, _velo_to_cam_delta_f);
+    readCalibFileMatrix(calib_file, "delta_c:", 1, 2, _velo_to_cam_delta_c);
 
     // close file and return success
     fclose (calib_file);
@@ -343,9 +343,9 @@ bool CalibIOKITTI::readImuToVeloCalibFromFile(const std::string& a_calib_file_na
         return false;
     }
 
-    readCalibFileString(calib_file, "calib_time:", m_imu_to_velo_calib_time);
-    readCalibFileMatrix(calib_file, "R:", 3, 3, m_imu_to_velo_R);
-    readCalibFileMatrix(calib_file, "T:", 1, 3, m_imu_to_velo_T);
+    readCalibFileString(calib_file, "calib_time:", _imu_to_velo_calib_time);
+    readCalibFileMatrix(calib_file, "R:", 3, 3, _imu_to_velo_R);
+    readCalibFileMatrix(calib_file, "T:", 1, 3, _imu_to_velo_T);
 
     // close file and return success
     fclose (calib_file);
