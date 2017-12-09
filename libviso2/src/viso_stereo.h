@@ -35,7 +35,7 @@ public:
         int32_t ransac_iters;     // number of RANSAC iterations
         double  inlier_threshold; // fundamental matrix inlier threshold
         bool    reweighting;      // lower border weights (more robust to calibration errors)
-        parameters ()
+        parameters()
         {
             base             = 1.0;
             ransac_iters     = 200;
@@ -45,10 +45,10 @@ public:
     };
 
     // constructor, takes as inpute a parameter structure
-    VisualOdometryStereo (parameters param);
+    VisualOdometryStereo(parameters param);
 
     // deconstructor
-    virtual ~VisualOdometryStereo ();
+    virtual ~VisualOdometryStereo();
 
     // process a new images, push the images back to an internal ring buffer.
     // valid motion estimates are available after calling process for two times.
@@ -62,7 +62,7 @@ public:
     //                     when small/no motions are observed to obtain Tr_delta wrt
     //                     an older coordinate system / time step than the previous one.
     // output: returns false if an error occured
-    bool process (uint8_t *I1,uint8_t *I2,int32_t* dims,bool replace=false);
+    bool process(uint8_t *I1,uint8_t *I2,int32_t* dims,bool replace=false);
 
     using VisualOdometry::process;
 
@@ -77,11 +77,14 @@ private:
     void                 computeResidualsAndJacobian(std::vector<double> &tr,std::vector<int32_t> &active);
     std::vector<int32_t> getInlier(std::vector<Matcher::p_match> &p_matched,std::vector<double> &tr);
 
-    double *X,*Y,*Z;    // 3d points
-    double *p_residual; // residuals (p_residual=p_observe-p_predict)
+    // 3d points
+    double* _X;
+    double* _Y;
+    double* _Z;
+    double* _p_residual; // residuals (p_residual=p_observe-p_predict)
 
     // parameters
-    parameters param;
+    parameters _param;
 };
 
 #endif // VISO_STEREO_H

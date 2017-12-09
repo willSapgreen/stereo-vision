@@ -32,62 +32,71 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 #include <sys/time.h>
 #include <stdint.h>
 
-class Timer {
-  
+class Timer
+{
 public:
-  
-  Timer() {}
-  
-  ~Timer() {}
-  
-  void start (std::string title) {
-    desc.push_back(title);
-    push_back_time();
-  }
-  
-  void stop () {
-    if (time.size()<=desc.size())
-      push_back_time();
-  }
-  
-  void plot () {
-    stop();
-    float total_time = 0;
-    for (int32_t i=0; i<(int32_t)desc.size(); i++) {
-      float curr_time = getTimeDifferenceMilliseconds(time[i],time[i+1]);
-      total_time += curr_time;
-      std::cout.width(30);
-      std::cout << desc[i] << " ";
-      std::cout << std::fixed << std::setprecision(1) << std::setw(6);
-      std::cout << curr_time;
-      std::cout << " ms" << std::endl;
+
+    Timer() {}
+
+    ~Timer() {}
+
+    void start (std::string title)
+    {
+        _desc.push_back(title);
+        push_back_time();
     }
-    std::cout << "========================================" << std::endl;
-    std::cout << "                    Total time ";
-    std::cout << std::fixed << std::setprecision(1) << std::setw(6);
-    std::cout << total_time;
-    std::cout << " ms" << std::endl << std::endl;
-  }
-  
-  void reset () {
-    desc.clear();
-    time.clear();
-  }
-  
+
+    void stop()
+    {
+        if (_time.size()<=_desc.size())
+        {
+            push_back_time();
+        }
+    }
+
+    void plot()
+    {
+        stop();
+        float total_time = 0;
+        for (int32_t i=0; i<(int32_t)_desc.size(); i++)
+        {
+            float curr_time = getTimeDifferenceMilliseconds(_time[i],_time[i+1]);
+            total_time += curr_time;
+            std::cout.width(30);
+            std::cout << _desc[i] << " ";
+            std::cout << std::fixed << std::setprecision(1) << std::setw(6);
+            std::cout << curr_time;
+            std::cout << " ms" << std::endl;
+        }
+        std::cout << "========================================" << std::endl;
+        std::cout << "                    Total time ";
+        std::cout << std::fixed << std::setprecision(1) << std::setw(6);
+        std::cout << total_time;
+        std::cout << " ms" << std::endl << std::endl;
+    }
+
+    void reset()
+    {
+        _desc.clear();
+        _time.clear();
+    }
+
 private:
-  std::vector<std::string>  desc;
-  std::vector<timeval>      time;
-  
-  void push_back_time () {
-    timeval curr_time;
-    gettimeofday(&curr_time,0);
-    time.push_back(curr_time);
-  }
-  
-  float getTimeDifferenceMilliseconds(timeval a,timeval b) {
-    return ((float)(b.tv_sec -a.tv_sec ))*1e+3 +
-           ((float)(b.tv_usec-a.tv_usec))*1e-3;
-  }
+    std::vector<std::string>  _desc;
+    std::vector<timeval>      _time;
+
+    void push_back_time()
+    {
+        timeval curr_time;
+        gettimeofday(&curr_time,0);
+        _time.push_back(curr_time);
+    }
+
+    float getTimeDifferenceMilliseconds(timeval a,timeval b)
+    {
+        return ((float)(b.tv_sec -a.tv_sec ))*1e+3 +
+               ((float)(b.tv_usec-a.tv_usec))*1e-3;
+    }
 };
 
 #endif

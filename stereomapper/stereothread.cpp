@@ -188,9 +188,9 @@ StereoThread::map3d StereoThread::createCurrentMap()
     }
     // compute 3d coordinates in first coordinate system
     float hcf00=0,hcf01=0,hcf02=0,hcf03=0,hcf10=0,hcf11=0,hcf12=0,hcf13=0,hcf20=0,hcf21=0,hcf22=0,hcf23=0;
-    hcf00 = m.H.val[0][0]; hcf01 = m.H.val[0][1]; hcf02 = m.H.val[0][2]; hcf03 = m.H.val[0][3];
-    hcf10 = m.H.val[1][0]; hcf11 = m.H.val[1][1]; hcf12 = m.H.val[1][2]; hcf13 = m.H.val[1][3];
-    hcf20 = m.H.val[2][0]; hcf21 = m.H.val[2][1]; hcf22 = m.H.val[2][2]; hcf23 = m.H.val[2][3];
+    hcf00 = m.H._val[0][0]; hcf01 = m.H._val[0][1]; hcf02 = m.H._val[0][2]; hcf03 = m.H._val[0][3];
+    hcf10 = m.H._val[1][0]; hcf11 = m.H._val[1][1]; hcf12 = m.H._val[1][2]; hcf13 = m.H._val[1][3];
+    hcf20 = m.H._val[2][0]; hcf21 = m.H._val[2][1]; hcf22 = m.H._val[2][2]; hcf23 = m.H._val[2][3];
     for (int32_t u=0; u<m.width; u++)
     {
         for (int32_t v=0; v<m.height; v++)
@@ -268,13 +268,13 @@ void StereoThread::addDisparityMapToReconstruction()
 
         // projection from first coordinate system to current coordinate system
         Matrix H = Matrix::inv(m_curr.H);
-        float hfc20 = H.val[2][0]; float hfc21 = H.val[2][1]; float hfc22 = H.val[2][2]; float hfc23 = H.val[2][3];
+        float hfc20 = H._val[2][0]; float hfc21 = H._val[2][1]; float hfc22 = H._val[2][2]; float hfc23 = H._val[2][3];
 
         // projection from first coordinate system to current image plane
         Matrix P = _K*H.getMat(0,0,2,3);
-        float pfc00 = P.val[0][0]; float pfc01 = P.val[0][1]; float pfc02 = P.val[0][2]; float pfc03 = P.val[0][3];
-        float pfc10 = P.val[1][0]; float pfc11 = P.val[1][1]; float pfc12 = P.val[1][2]; float pfc13 = P.val[1][3];
-        float pfc20 = P.val[2][0]; float pfc21 = P.val[2][1]; float pfc22 = P.val[2][2]; float pfc23 = P.val[2][3];
+        float pfc00 = P._val[0][0]; float pfc01 = P._val[0][1]; float pfc02 = P._val[0][2]; float pfc03 = P._val[0][3];
+        float pfc10 = P._val[1][0]; float pfc11 = P._val[1][1]; float pfc12 = P._val[1][2]; float pfc13 = P._val[1][3];
+        float pfc20 = P._val[2][0]; float pfc21 = P._val[2][1]; float pfc22 = P._val[2][2]; float pfc23 = P._val[2][3];
 
         std::vector<View3D::point_3d> points_prev;
 
@@ -405,11 +405,11 @@ void StereoThread::getIntrinsics()
 
     // calibration matrix
     _K = Matrix(3,3);
-    _K.val[0][0] = _f;
-    _K.val[1][1] = _f;
-    _K.val[0][2] = _cu;
-    _K.val[1][2] = _cv;
-    _K.val[2][2] = 1;
+    _K._val[0][0] = _f;
+    _K._val[1][1] = _f;
+    _K._val[0][2] = _cu;
+    _K._val[1][2] = _cv;
+    _K._val[2][2] = 1;
 }
 
 //==============================================================================//

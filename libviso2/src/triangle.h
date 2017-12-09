@@ -282,4 +282,3 @@ struct triangulateio {
 
 void triangulate(char *,triangulateio *,triangulateio *,triangulateio *);
 void trifree(int *memptr);
-

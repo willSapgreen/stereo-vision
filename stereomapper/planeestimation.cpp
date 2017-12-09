@@ -52,9 +52,9 @@ void PlaneEstimation::computeTransformationFromDisparityMap(float* D,int32_t wid
         curr_inlier.clear();
         for (int32_t i=0; i<(int32_t)d_list.size(); i++)
         {
-            float result = _plane_d.val[0][0] * d_list[i].u +
-                           _plane_d.val[1][0] * d_list[i].v +
-                           _plane_d.val[2][0] - d_list[i].d;
+            float result = _plane_d._val[0][0] * d_list[i].u +
+                           _plane_d._val[1][0] * d_list[i].v +
+                           _plane_d._val[2][0] - d_list[i].d;
             if (fabs(result) < d_threshold)
             {
                 curr_inlier.push_back(i);
@@ -84,15 +84,15 @@ void PlaneEstimation::computeTransformationFromDisparityMap(float* D,int32_t wid
 void PlaneEstimation::planeDsiTo3d()
 {
     // 3d plane parameters
-    FLOAT a = _plane_d.val[0][0];
-    FLOAT b = _plane_d.val[1][0];
-    FLOAT c = _plane_d.val[2][0];
-    _plane_e.val[0][0] = a/_base;
-    _plane_e.val[1][0] = b/_base;
-    _plane_e.val[2][0] = (a*_cu+b*_cv+c)/(_f*_base);
+    FLOAT a = _plane_d._val[0][0];
+    FLOAT b = _plane_d._val[1][0];
+    FLOAT c = _plane_d._val[2][0];
+    _plane_e._val[0][0] = a/_base;
+    _plane_e._val[1][0] = b/_base;
+    _plane_e._val[2][0] = (a*_cu+b*_cv+c)/(_f*_base);
 
     // road
-    if (fabs(_plane_d.val[0][1])>0.1)
+    if (fabs(_plane_d._val[0][1])>0.1)
     {
         // r2 (facing bottom) = normal vector
         Matrix r2 = _plane_e/_plane_e.l2norm();
@@ -102,13 +102,13 @@ void PlaneEstimation::planeDsiTo3d()
         // - r2'*r1=0
         // - norm(r1)=1
         Matrix r1(3,1);
-        r1.val[0][0] = +sqrt(r2.val[1][0]*r2.val[1][0]/(r2.val[0][0]*r2.val[0][0]+r2.val[1][0]*r2.val[1][0]));
-        r1.val[1][0] = -r1.val[0][0]*r2.val[0][0]/r2.val[1][0];
-        r1.val[2][0] = 0;
+        r1._val[0][0] = +sqrt(r2._val[1][0]*r2._val[1][0]/(r2._val[0][0]*r2._val[0][0]+r2._val[1][0]*r2._val[1][0]));
+        r1._val[1][0] = -r1._val[0][0]*r2._val[0][0]/r2._val[1][0];
+        r1._val[2][0] = 0;
 
         // cross product (facing forward)
         Matrix r3 = Matrix::cross(r1,r2);
-        _pitch = atan2(r3.val[1][0],r3.val[2][0]);
+        _pitch = atan2(r3._val[1][0],r3._val[2][0]);
 
         // create 3d homography
         _H.eye();
@@ -231,19 +231,19 @@ void PlaneEstimation::leastSquarePlane(vector<disp> &d_list,vector<int32_t> &ind
         float u = d_list[*it].u;
         float v = d_list[*it].v;
         float d = d_list[*it].d;
-        _A.val[0][0] += u*u;
-        _A.val[0][1] += u*v;
-        _A.val[0][2] += u;
-        _A.val[1][1] += v*v;
-        _A.val[1][2] += v;
-        _A.val[2][2] += 1;
-        _b.val[0][0] += u*d;
-        _b.val[1][0] += v*d;
-        _b.val[2][0] += d;
+        _A._val[0][0] += u*u;
+        _A._val[0][1] += u*v;
+        _A._val[0][2] += u;
+        _A._val[1][1] += v*v;
+        _A._val[1][2] += v;
+        _A._val[2][2] += 1;
+        _b._val[0][0] += u*d;
+        _b._val[1][0] += v*d;
+        _b._val[2][0] += d;
     }
-    _A.val[1][0] = _A.val[0][1];
-    _A.val[2][0] = _A.val[0][2];
-    _A.val[2][1] = _A.val[1][2];
+    _A._val[1][0] = _A._val[0][1];
+    _A._val[2][0] = _A._val[0][2];
+    _A._val[2][1] = _A._val[1][2];
 
     if (_b.solve(_A))
     {

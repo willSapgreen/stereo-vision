@@ -25,14 +25,14 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 
 using namespace std;
 
-VisualOdometry::VisualOdometry(parameters param) : param(param)
+VisualOdometry::VisualOdometry(parameters param) : _param(param)
 {
-    J         = 0;
-    p_observe = 0;
-    p_predict = 0;
-    matcher   = new Matcher(param.match);
-    Tr_delta  = Matrix::eye(4);
-    Tr_valid  = false;
+    _J         = 0;
+    _p_observe = 0;
+    _p_predict = 0;
+    _matcher   = new Matcher(param.match);
+    _Tr_delta  = Matrix::eye(4);
+    _Tr_valid  = false;
     srand(0);
 }
 
@@ -40,7 +40,7 @@ VisualOdometry::VisualOdometry(parameters param) : param(param)
 
 VisualOdometry::~VisualOdometry()
 {
-    delete matcher;
+    delete _matcher;
 }
 
 //==============================================================================//
@@ -48,7 +48,7 @@ VisualOdometry::~VisualOdometry()
 bool VisualOdometry::updateMotion()
 {
     // estimate motion
-    vector<double> tr_delta = estimateMotion(p_matched);
+    vector<double> tr_delta = estimateMotion(_p_matched);
 
     // on failure
     if (tr_delta.size()!=6)
@@ -57,8 +57,8 @@ bool VisualOdometry::updateMotion()
     }
 
     // set transformation matrix (previous to current frame)
-    Tr_delta = transformationVectorToMatrix(tr_delta);
-    Tr_valid = true;
+    _Tr_delta = transformationVectorToMatrix(tr_delta);
+    _Tr_valid = true;
 
     // success
     return true;
@@ -66,7 +66,7 @@ bool VisualOdometry::updateMotion()
 
 //==============================================================================//
 
-Matrix VisualOdometry::transformationVectorToMatrix (vector<double> tr)
+Matrix VisualOdometry::transformationVectorToMatrix(vector<double> tr)
 {
     // extract parameters
     double rx = tr[0];
@@ -86,10 +86,10 @@ Matrix VisualOdometry::transformationVectorToMatrix (vector<double> tr)
 
     // compute transformation
     Matrix Tr(4,4);
-    Tr.val[0][0] = +cy*cz;          Tr.val[0][1] = -cy*sz;          Tr.val[0][2] = +sy;    Tr.val[0][3] = tx;
-    Tr.val[1][0] = +sx*sy*cz+cx*sz; Tr.val[1][1] = -sx*sy*sz+cx*cz; Tr.val[1][2] = -sx*cy; Tr.val[1][3] = ty;
-    Tr.val[2][0] = -cx*sy*cz+sx*sz; Tr.val[2][1] = +cx*sy*sz+sx*cz; Tr.val[2][2] = +cx*cy; Tr.val[2][3] = tz;
-    Tr.val[3][0] = 0;               Tr.val[3][1] = 0;               Tr.val[3][2] = 0;      Tr.val[3][3] = 1;
+    Tr._val[0][0] = +cy*cz;          Tr._val[0][1] = -cy*sz;          Tr._val[0][2] = +sy;    Tr._val[0][3] = tx;
+    Tr._val[1][0] = +sx*sy*cz+cx*sz; Tr._val[1][1] = -sx*sy*sz+cx*cz; Tr._val[1][2] = -sx*cy; Tr._val[1][3] = ty;
+    Tr._val[2][0] = -cx*sy*cz+sx*sz; Tr._val[2][1] = +cx*sy*sz+sx*cz; Tr._val[2][2] = +cx*cy; Tr._val[2][3] = tz;
+    Tr._val[3][0] = 0;               Tr._val[3][1] = 0;               Tr._val[3][2] = 0;      Tr._val[3][3] = 1;
     return Tr;
 }
 

@@ -25,9 +25,9 @@ using namespace std;
 
 VisualOdometryStereo::VisualOdometryStereo( parameters param ) :
                       VisualOdometry( param ),
-                      param( param )
+                      _param( param )
 {
-    matcher->setIntrinsics(param.calib.f,param.calib.cu,param.calib.cv,param.base);
+    _matcher->setIntrinsics(param.calib.f,param.calib.cu,param.calib.cv,param.base);
 }
 
 //==============================================================================//
@@ -38,38 +38,38 @@ VisualOdometryStereo::~VisualOdometryStereo()
 
 //==============================================================================//
 
-bool VisualOdometryStereo::process (uint8_t *I1,uint8_t *I2,int32_t* dims,bool replace)
+bool VisualOdometryStereo::process(uint8_t *I1,uint8_t *I2,int32_t* dims,bool replace)
 {
     // push back images
-    matcher->pushBack(I1,I2,dims,replace);
+    _matcher->pushBack(I1,I2,dims,replace);
 
     // bootstrap motion estimate if invalid
-    if(!Tr_valid)
+    if(!_Tr_valid)
     {
-        matcher->matchFeatures(2);
-        matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);
-        p_matched = matcher->getMatches();
+        _matcher->matchFeatures(2);
+        _matcher->bucketFeatures(_param.bucket.max_features, _param.bucket.bucket_width, _param.bucket.bucket_height);
+        _p_matched = _matcher->getMatches();
         updateMotion();
     }
 
     // match features and update motion
-    if (Tr_valid)
+    if (_Tr_valid)
     {
-        matcher->matchFeatures(2,&Tr_delta);
+        _matcher->matchFeatures(2,&_Tr_delta);
     }
     else
     {
-        matcher->matchFeatures(2);
+        _matcher->matchFeatures(2);
     }
 
-    matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);
-    p_matched = matcher->getMatches();
+    _matcher->bucketFeatures(_param.bucket.max_features, _param.bucket.bucket_width, _param.bucket.bucket_height);
+    _p_matched = _matcher->getMatches();
     return updateMotion();
 }
 
 //==============================================================================//
 
-vector<double> VisualOdometryStereo::estimateMotion (vector<Matcher::p_match> p_matched)
+vector<double> VisualOdometryStereo::estimateMotion(vector<Matcher::p_match> p_matched)
 {
     // return value
     bool success = true;
@@ -91,21 +91,21 @@ vector<double> VisualOdometryStereo::estimateMotion (vector<Matcher::p_match> p_
     }
 
     // allocate dynamic memory
-    X          = new double[N];
-    Y          = new double[N];
-    Z          = new double[N];
-    J          = new double[4*N*6];
-    p_predict  = new double[4*N];
-    p_observe  = new double[4*N];
-    p_residual = new double[4*N];
+    _X          = new double[N];
+    _Y          = new double[N];
+    _Z          = new double[N];
+    _J          = new double[4*N*6];
+    _p_predict  = new double[4*N];
+    _p_observe  = new double[4*N];
+    _p_residual = new double[4*N];
 
     // project matches of previous image into 3d
     for(int32_t i=0; i<N; i++)
     {
         double d = max(p_matched[i].u1p - p_matched[i].u2p,0.0001f);
-        X[i] = (p_matched[i].u1p-param.calib.cu)*param.base/d;
-        Y[i] = (p_matched[i].v1p-param.calib.cv)*param.base/d;
-        Z[i] = param.calib.f*param.base/d;
+        _X[i] = (p_matched[i].u1p - _param.calib.cu) * _param.base / d;
+        _Y[i] = (p_matched[i].v1p - _param.calib.cv) * _param.base / d;
+        _Z[i] = _param.calib.f * _param.base / d;
     }
 
     // loop variables
@@ -114,10 +114,10 @@ vector<double> VisualOdometryStereo::estimateMotion (vector<Matcher::p_match> p_
     tr_delta_curr.resize(6);
 
     // clear parameter vector
-    inliers.clear();
+    _inliers.clear();
 
     // initial RANSAC estimate
-    for(int32_t k=0;k<param.ransac_iters;k++)
+    for(int32_t k = 0; k < _param.ransac_iters; k++)
     {
         // draw random sample set
         vector<int32_t> active = getRandomSample(N,3);
@@ -144,22 +144,22 @@ vector<double> VisualOdometryStereo::estimateMotion (vector<Matcher::p_match> p_
         if(result!=FAILED)
         {
             vector<int32_t> inliers_curr = getInlier(p_matched,tr_delta_curr);
-            if(inliers_curr.size()>inliers.size())
+            if(inliers_curr.size() > _inliers.size())
             {
-                inliers = inliers_curr;
+                _inliers = inliers_curr;
                 tr_delta = tr_delta_curr;
             }
         }
     }
 
     // final optimization (refinement)
-    if (inliers.size()>=6)
+    if (_inliers.size()>=6)
     {
         int32_t iter=0;
         VisualOdometryStereo::result result = UPDATED;
         while (result==UPDATED)
         {
-            result = updateParameters(p_matched,inliers,tr_delta,1,1e-8);
+            result = updateParameters(p_matched, _inliers, tr_delta, 1, 1e-8);
             if (iter++ > 100 || result==CONVERGED)
             {
                 break;
@@ -179,13 +179,13 @@ vector<double> VisualOdometryStereo::estimateMotion (vector<Matcher::p_match> p_
     }
 
     // release dynamic memory
-    delete[] X;
-    delete[] Y;
-    delete[] Z;
-    delete[] J;
-    delete[] p_predict;
-    delete[] p_observe;
-    delete[] p_residual;
+    delete[] _X;
+    delete[] _Y;
+    delete[] _Z;
+    delete[] _J;
+    delete[] _p_predict;
+    delete[] _p_observe;
+    delete[] _p_residual;
 
     // parameter estimate succeeded?
     if (success) return tr_delta;
@@ -211,8 +211,8 @@ vector<int32_t> VisualOdometryStereo::getInlier(vector<Matcher::p_match> &p_matc
     vector<int32_t> inliers;
     for(int32_t i=0; i<(int32_t)p_matched.size(); i++)
     {
-        if(pow(p_observe[4*i+0]-p_predict[4*i+0],2)+pow(p_observe[4*i+1]-p_predict[4*i+1],2) +
-            pow(p_observe[4*i+2]-p_predict[4*i+2],2)+pow(p_observe[4*i+3]-p_predict[4*i+3],2) < param.inlier_threshold*param.inlier_threshold)
+        if(pow(_p_observe[4*i+0]-_p_predict[4*i+0],2)+pow(_p_observe[4*i+1]-_p_predict[4*i+1],2) +
+           pow(_p_observe[4*i+2]-_p_predict[4*i+2],2)+pow(_p_observe[4*i+3]-_p_predict[4*i+3],2) < _param.inlier_threshold * _param.inlier_threshold)
       {
             inliers.push_back(i);
       }
@@ -247,16 +247,16 @@ VisualOdometryStereo::result VisualOdometryStereo::updateParameters(vector<Match
             double a = 0;
             for (int32_t i=0; i<4*(int32_t)active.size(); i++)
             {
-                a += J[i*6+m]*J[i*6+n];
+                a += _J[i*6+m]*_J[i*6+n];
             }
-            A.val[m][n] = a;
+            A._val[m][n] = a;
         }
         double b = 0;
         for (int32_t i=0; i<4*(int32_t)active.size(); i++)
         {
-            b += J[i*6+m]*(p_residual[i]);
+            b += _J[i*6+m]*(_p_residual[i]);
         }
-        B.val[m][0] = b;
+        B._val[m][0] = b;
     }
 
     // perform elimination
@@ -265,8 +265,8 @@ VisualOdometryStereo::result VisualOdometryStereo::updateParameters(vector<Match
         bool converged = true;
         for (int32_t m=0; m<6; m++)
         {
-            tr[m] += step_size*B.val[m][0];
-            if (fabs(B.val[m][0])>eps)
+            tr[m] += step_size*B._val[m][0];
+            if (fabs(B._val[m][0])>eps)
             {
                 converged = false;
             }
@@ -287,10 +287,10 @@ void VisualOdometryStereo::computeObservations(vector<Matcher::p_match> &p_match
     // set all observations
     for (int32_t i=0; i<(int32_t)active.size(); i++)
     {
-        p_observe[4*i+0] = p_matched[active[i]].u1c; // u1
-        p_observe[4*i+1] = p_matched[active[i]].v1c; // v1
-        p_observe[4*i+2] = p_matched[active[i]].u2c; // u2
-        p_observe[4*i+3] = p_matched[active[i]].v2c; // v2
+        _p_observe[4*i+0] = p_matched[active[i]].u1c; // u1
+        _p_observe[4*i+1] = p_matched[active[i]].v1c; // v1
+        _p_observe[4*i+2] = p_matched[active[i]].u2c; // u2
+        _p_observe[4*i+3] = p_matched[active[i]].v2c; // v2
     }
 }
 
@@ -328,9 +328,9 @@ void VisualOdometryStereo::computeResidualsAndJacobian(vector<double> &tr,vector
     for (int32_t i=0; i<(int32_t)active.size(); i++)
     {
         // get 3d point in previous coordinate system
-        X1p = X[active[i]];
-        Y1p = Y[active[i]];
-        Z1p = Z[active[i]];
+        X1p = _X[active[i]];
+        Y1p = _Y[active[i]];
+        Z1p = _Z[active[i]];
 
         // compute 3d point in current left coordinate system
         X1c = r00*X1p+r01*Y1p+r02*Z1p+tx;
@@ -339,13 +339,13 @@ void VisualOdometryStereo::computeResidualsAndJacobian(vector<double> &tr,vector
 
         // weighting
         double weight = 1.0;
-        if (param.reweighting)
+        if (_param.reweighting)
         {
-            weight = 1.0/(fabs(p_observe[4*i+0]-param.calib.cu)/fabs(param.calib.cu) + 0.05);
+            weight = 1.0/(fabs(_p_observe[4*i+0] - _param.calib.cu)/fabs(_param.calib.cu) + 0.05);
         }
 
         // compute 3d point in current right coordinate system
-        X2c = X1c-param.base;
+        X2c = X1c - _param.base;
 
         // for all paramters do
         for (int32_t j=0; j<6; j++)
@@ -371,22 +371,22 @@ void VisualOdometryStereo::computeResidualsAndJacobian(vector<double> &tr,vector
             }
 
             // set jacobian entries (project via K)
-            J[(4*i+0)*6+j] = weight*param.calib.f*(X1cd*Z1c-X1c*Z1cd)/(Z1c*Z1c); // left u'
-            J[(4*i+1)*6+j] = weight*param.calib.f*(Y1cd*Z1c-Y1c*Z1cd)/(Z1c*Z1c); // left v'
-            J[(4*i+2)*6+j] = weight*param.calib.f*(X1cd*Z1c-X2c*Z1cd)/(Z1c*Z1c); // right u'
-            J[(4*i+3)*6+j] = weight*param.calib.f*(Y1cd*Z1c-Y1c*Z1cd)/(Z1c*Z1c); // right v'
+            _J[(4*i+0)*6+j] = weight * _param.calib.f*(X1cd*Z1c-X1c*Z1cd)/(Z1c*Z1c); // left u'
+            _J[(4*i+1)*6+j] = weight * _param.calib.f*(Y1cd*Z1c-Y1c*Z1cd)/(Z1c*Z1c); // left v'
+            _J[(4*i+2)*6+j] = weight * _param.calib.f*(X1cd*Z1c-X2c*Z1cd)/(Z1c*Z1c); // right u'
+            _J[(4*i+3)*6+j] = weight * _param.calib.f*(Y1cd*Z1c-Y1c*Z1cd)/(Z1c*Z1c); // right v'
         }
 
         // set prediction (project via K)
-        p_predict[4*i+0] = param.calib.f*X1c/Z1c+param.calib.cu; // left u
-        p_predict[4*i+1] = param.calib.f*Y1c/Z1c+param.calib.cv; // left v
-        p_predict[4*i+2] = param.calib.f*X2c/Z1c+param.calib.cu; // right u
-        p_predict[4*i+3] = param.calib.f*Y1c/Z1c+param.calib.cv; // right v
+        _p_predict[4*i+0] = _param.calib.f * X1c / Z1c + _param.calib.cu; // left u
+        _p_predict[4*i+1] = _param.calib.f * Y1c / Z1c + _param.calib.cv; // left v
+        _p_predict[4*i+2] = _param.calib.f * X2c / Z1c + _param.calib.cu; // right u
+        _p_predict[4*i+3] = _param.calib.f * Y1c / Z1c + _param.calib.cv; // right v
 
         // set residuals
-        p_residual[4*i+0] = weight*(p_observe[4*i+0]-p_predict[4*i+0]);
-        p_residual[4*i+1] = weight*(p_observe[4*i+1]-p_predict[4*i+1]);
-        p_residual[4*i+2] = weight*(p_observe[4*i+2]-p_predict[4*i+2]);
-        p_residual[4*i+3] = weight*(p_observe[4*i+3]-p_predict[4*i+3]);
+        _p_residual[4*i+0] = weight*(_p_observe[4*i+0]-_p_predict[4*i+0]);
+        _p_residual[4*i+1] = weight*(_p_observe[4*i+1]-_p_predict[4*i+1]);
+        _p_residual[4*i+2] = weight*(_p_observe[4*i+2]-_p_predict[4*i+2]);
+        _p_residual[4*i+3] = weight*(_p_observe[4*i+3]-_p_predict[4*i+3]);
     }
 }

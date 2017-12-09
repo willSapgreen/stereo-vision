@@ -91,13 +91,13 @@ void View3D::mouseMoveEvent(QMouseEvent *event)
         Matrix R = Matrix::rotMatY(-ry)*Matrix::rotMatX(-rx);
 
         Matrix v(3,1);
-        v.val[0][0] = dx;
-        v.val[1][0] = dy;
+        v._val[0][0] = dx;
+        v._val[1][0] = dy;
 
         v = R*v;
-        _pose_curr.tx += 0.0025*_pose_curr.zoom*v.val[0][0];
-        _pose_curr.ty += 0.0025*_pose_curr.zoom*v.val[1][0];
-        _pose_curr.tz += 0.0025*_pose_curr.zoom*v.val[2][0];
+        _pose_curr.tx += 0.0025*_pose_curr.zoom*v._val[0][0];
+        _pose_curr.ty += 0.0025*_pose_curr.zoom*v._val[1][0];
+        _pose_curr.tz += 0.0025*_pose_curr.zoom*v._val[2][0];
     }
 
     _last_pos = event->pos();
@@ -126,19 +126,19 @@ void View3D::addCamera (Matrix H_total,float s,bool keyframe)
 {
     // create list with points for this camera
     Matrix C(4,10);
-    C.val[0][0] = -0.5*s; C.val[1][0] = -0.5*s; C.val[2][0] = +1.0*s;
-    C.val[0][1] = +0.5*s; C.val[1][1] = -0.5*s; C.val[2][1] = +1.0*s;
-    C.val[0][2] = +0.5*s; C.val[1][2] = +0.5*s; C.val[2][2] = +1.0*s;
-    C.val[0][3] = -0.5*s; C.val[1][3] = +0.5*s; C.val[2][3] = +1.0*s;
-    C.val[0][4] = -0.5*s; C.val[1][4] = -0.5*s; C.val[2][4] = +1.0*s;
-    C.val[0][5] =      0; C.val[1][5] =      0; C.val[2][5] =      0;
-    C.val[0][6] = +0.5*s; C.val[1][6] = -0.5*s; C.val[2][6] = +1.0*s;
-    C.val[0][7] = +0.5*s; C.val[1][7] = +0.5*s; C.val[2][7] = +1.0*s;
-    C.val[0][8] =      0; C.val[1][8] =      0; C.val[2][8] =      0;
-    C.val[0][9] = -0.5*s; C.val[1][9] = +0.5*s; C.val[2][9] = +1.0*s;
+    C._val[0][0] = -0.5*s; C._val[1][0] = -0.5*s; C._val[2][0] = +1.0*s;
+    C._val[0][1] = +0.5*s; C._val[1][1] = -0.5*s; C._val[2][1] = +1.0*s;
+    C._val[0][2] = +0.5*s; C._val[1][2] = +0.5*s; C._val[2][2] = +1.0*s;
+    C._val[0][3] = -0.5*s; C._val[1][3] = +0.5*s; C._val[2][3] = +1.0*s;
+    C._val[0][4] = -0.5*s; C._val[1][4] = -0.5*s; C._val[2][4] = +1.0*s;
+    C._val[0][5] =      0; C._val[1][5] =      0; C._val[2][5] =      0;
+    C._val[0][6] = +0.5*s; C._val[1][6] = -0.5*s; C._val[2][6] = +1.0*s;
+    C._val[0][7] = +0.5*s; C._val[1][7] = +0.5*s; C._val[2][7] = +1.0*s;
+    C._val[0][8] =      0; C._val[1][8] =      0; C._val[2][8] =      0;
+    C._val[0][9] = -0.5*s; C._val[1][9] = +0.5*s; C._val[2][9] = +1.0*s;
     for (int32_t i=0; i<10; i++)
     {
-        C.val[3][i] = 1;
+        C._val[3][i] = 1;
     }
 
     // transfer camera to reference coordinate system
@@ -151,7 +151,7 @@ void View3D::addCamera (Matrix H_total,float s,bool keyframe)
     {
         for (int32_t j=0; j<3; j++)
         {
-            ccam.p[i][j] = C_ref.val[j][i];
+            ccam.p[i][j] = C_ref._val[j][i];
         }
     }
     _cams.push_back(ccam);

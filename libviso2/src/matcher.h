@@ -38,33 +38,34 @@ class Matcher
 public:
 
     // parameter settings
-    struct parameters {
+    struct parameters
+    {
+        int32_t nms_n;                  // non-max-suppression: min. distance between maxima (in pixels)
+        int32_t nms_tau;                // non-max-suppression: interest point peakiness threshold
+        int32_t match_binsize;          // matching bin width/height (affects efficiency only)
+        int32_t match_radius;           // matching radius (du/dv in pixels)
+        int32_t match_disp_tolerance;   // dv tolerance for stereo matches (in pixels)
+        int32_t outlier_disp_tolerance; // outlier removal: disparity tolerance (in pixels)
+        int32_t outlier_flow_tolerance; // outlier removal: flow tolerance (in pixels)
+        int32_t multi_stage;            // 0=disabled,1=multistage matching (denser and faster)
+        int32_t half_resolution;        // 0=disabled,1=match at half resolution, refine at full resolution
+        int32_t refinement;             // refinement (0=none,1=pixel,2=subpixel)
+        double  f,cu,cv,base;           // calibration (only for match prediction)
 
-      int32_t nms_n;                  // non-max-suppression: min. distance between maxima (in pixels)
-      int32_t nms_tau;                // non-max-suppression: interest point peakiness threshold
-      int32_t match_binsize;          // matching bin width/height (affects efficiency only)
-      int32_t match_radius;           // matching radius (du/dv in pixels)
-      int32_t match_disp_tolerance;   // dv tolerance for stereo matches (in pixels)
-      int32_t outlier_disp_tolerance; // outlier removal: disparity tolerance (in pixels)
-      int32_t outlier_flow_tolerance; // outlier removal: flow tolerance (in pixels)
-      int32_t multi_stage;            // 0=disabled,1=multistage matching (denser and faster)
-      int32_t half_resolution;        // 0=disabled,1=match at half resolution, refine at full resolution
-      int32_t refinement;             // refinement (0=none,1=pixel,2=subpixel)
-      double  f,cu,cv,base;           // calibration (only for match prediction)
-
-      // default settings
-      parameters () {
-        nms_n                  = 3;
-        nms_tau                = 50;
-        match_binsize          = 50;
-        match_radius           = 200;
-        match_disp_tolerance   = 2;
-        outlier_disp_tolerance = 5;
-        outlier_flow_tolerance = 5;
-        multi_stage            = 1;
-        half_resolution        = 1;
-        refinement             = 1;
-      }
+        // default settings
+        parameters()
+        {
+            nms_n                  = 3;
+            nms_tau                = 50;
+            match_binsize          = 50;
+            match_radius           = 200;
+            match_disp_tolerance   = 2;
+            outlier_disp_tolerance = 5;
+            outlier_flow_tolerance = 5;
+            multi_stage            = 1;
+            half_resolution        = 1;
+            refinement             = 1;
+        }
     };
 
     // constructor (with default parameters)
@@ -74,28 +75,30 @@ public:
     ~Matcher();
 
     // intrinsics
-    void setIntrinsics(double f,double cu,double cv,double base) {
-      param.f = f;
-      param.cu = cu;
-      param.cv = cv;
-      param.base = base;
+    void setIntrinsics(double f,double cu,double cv,double base)
+    {
+        _param.f = f;
+        _param.cu = cu;
+        _param.cv = cv;
+        _param.base = base;
     }
 
     // structure for storing matches
-    struct p_match {
-      float   u1p,v1p; // u,v-coordinates in previous left  image
-      int32_t i1p;     // feature index (for tracking)
-      float   u2p,v2p; // u,v-coordinates in previous right image
-      int32_t i2p;     // feature index (for tracking)
-      float   u1c,v1c; // u,v-coordinates in current  left  image
-      int32_t i1c;     // feature index (for tracking)
-      float   u2c,v2c; // u,v-coordinates in current  right image
-      int32_t i2c;     // feature index (for tracking)
-      p_match(){}
-      p_match(float u1p,float v1p,int32_t i1p,float u2p,float v2p,int32_t i2p,
-              float u1c,float v1c,int32_t i1c,float u2c,float v2c,int32_t i2c):
-              u1p(u1p),v1p(v1p),i1p(i1p),u2p(u2p),v2p(v2p),i2p(i2p),
-              u1c(u1c),v1c(v1c),i1c(i1c),u2c(u2c),v2c(v2c),i2c(i2c) {}
+    struct p_match
+    {
+        float   u1p,v1p; // u,v-coordinates in previous left  image
+        int32_t i1p;     // feature index (for tracking)
+        float   u2p,v2p; // u,v-coordinates in previous right image
+        int32_t i2p;     // feature index (for tracking)
+        float   u1c,v1c; // u,v-coordinates in current  left  image
+        int32_t i1c;     // feature index (for tracking)
+        float   u2c,v2c; // u,v-coordinates in current  right image
+        int32_t i2c;     // feature index (for tracking)
+        p_match(){}
+        p_match(float u1p,float v1p,int32_t i1p,float u2p,float v2p,int32_t i2p,
+                float u1c,float v1c,int32_t i1c,float u2c,float v2c,int32_t i2c):
+                u1p(u1p),v1p(v1p),i1p(i1p),u2p(u2p),v2p(v2p),i2p(i2p),
+                u1c(u1c),v1c(v1c),i1c(i1c),u2c(u2c),v2c(v2c),i2c(i2c) {}
     };
 
     // computes features from left/right images and pushes them back to a ringbuffer,
@@ -108,13 +111,13 @@ public:
     //                         the input images, otherwise the current image is first copied
     //                         to the previous image (ring buffer functionality, descriptors need
     //                         to be computed only once)
-    void pushBack (uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace);
+    void pushBack(uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace);
 
     // computes features from a single image and pushes it back to a ringbuffer,
     // which interally stores the features of the current and previous image pair
     // use this function for flow computation
     // parameter description see above
-    void pushBack (uint8_t *I1,int32_t* dims,const bool replace) { pushBack(I1,0,dims,replace); }
+    void pushBack(uint8_t *I1,int32_t* dims,const bool replace) { pushBack(I1,0,dims,replace); }
 
     // match features currently stored in ring buffer (current and previous frame)
     // input: method ... 0 = flow, 1 = stereo, 2 = quad matching
@@ -127,58 +130,68 @@ public:
     void bucketFeatures(int32_t max_features,float bucket_width,float bucket_height);
 
     // return vector with matched feature points and indices
-    std::vector<Matcher::p_match> getMatches() { return p_matched_2; }
+    std::vector<Matcher::p_match> getMatches() { return _p_matched_2; }
 
     // given a vector of inliers computes gain factor between the current and
     // the previous frame. this function is useful if you want to reconstruct 3d
     // and you want to cancel the change of (unknown) camera gain.
-    float getGain (std::vector<int32_t> inliers);
+    float getGain(std::vector<int32_t> inliers);
 
 private:
 
     // structure for storing interest points
-    struct maximum {
-      int32_t u;   // u-coordinate
-      int32_t v;   // v-coordinate
-      int32_t val; // value
-      int32_t c;   // class
-      int32_t d1,d2,d3,d4,d5,d6,d7,d8; // descriptor
-      maximum() {}
-      maximum(int32_t u,int32_t v,int32_t val,int32_t c):u(u),v(v),val(val),c(c) {}
+    struct maximum
+    {
+        int32_t u;   // u-coordinate
+        int32_t v;   // v-coordinate
+        int32_t val; // value
+        int32_t c;   // class
+        int32_t d1,d2,d3,d4,d5,d6,d7,d8; // descriptor
+        maximum() {}
+        maximum(int32_t u,int32_t v,int32_t val,int32_t c):u(u),v(v),val(val),c(c) {}
     };
 
     // u/v ranges for matching stage 0-3
-    struct range {
-      float u_min[4];
-      float u_max[4];
-      float v_min[4];
-      float v_max[4];
+    struct range
+    {
+        float u_min[4];
+        float u_max[4];
+        float v_min[4];
+        float v_max[4];
     };
 
-    struct delta {
-      float val[8];
-      delta () {}
-      delta (float v) {
-        for (int32_t i=0; i<8; i++)
-          val[i] = v;
-      }
+    struct delta
+    {
+        float val[8];
+        delta () {}
+        delta (float v)
+        {
+            for (int32_t i=0; i<8; i++)
+            {
+                val[i] = v;
+            }
+        }
     };
 
     // computes the address offset for coordinates u,v of an image of given width
-    inline int32_t getAddressOffsetImage (const int32_t& u,const int32_t& v,const int32_t& width) {
-      return v*width+u;
+    inline int32_t getAddressOffsetImage(const int32_t& u,const int32_t& v,const int32_t& width)
+    {
+        return v*width+u;
     }
 
     // Alexander Neubeck and Luc Van Gool: Efficient Non-Maximum Suppression, ICPR'06, algorithm 4
-    void nonMaximumSuppression (int16_t* I_f1,int16_t* I_f2,const int32_t* dims,std::vector<Matcher::maximum> &maxima,int32_t nms_n);
+    void nonMaximumSuppression(int16_t* I_f1,int16_t* I_f2,const int32_t* dims,
+                               std::vector<Matcher::maximum> &maxima,int32_t nms_n);
 
     // descriptor functions
     inline uint8_t saturate(int16_t in);
-    void filterImageAll (uint8_t* I,uint8_t* I_du,uint8_t* I_dv,int16_t* I_f1,int16_t* I_f2,const int* dims);
-    void filterImageSobel (uint8_t* I,uint8_t* I_du,uint8_t* I_dv,const int* dims);
-    inline void computeDescriptor (const uint8_t* I_du,const uint8_t* I_dv,const int32_t &bpl,const int32_t &u,const int32_t &v,uint8_t *desc_addr);
-    inline void computeSmallDescriptor (const uint8_t* I_du,const uint8_t* I_dv,const int32_t &bpl,const int32_t &u,const int32_t &v,uint8_t *desc_addr);
-    void computeDescriptors (uint8_t* I_du,uint8_t* I_dv,const int32_t bpl,std::vector<Matcher::maximum> &maxima);
+    void filterImageAll(uint8_t* I,uint8_t* I_du,uint8_t* I_dv,int16_t* I_f1,int16_t* I_f2,const int* dims);
+    void filterImageSobel(uint8_t* I,uint8_t* I_du,uint8_t* I_dv,const int* dims);
+    inline void computeDescriptor(const uint8_t* I_du,const uint8_t* I_dv,
+                                  const int32_t &bpl,const int32_t &u,const int32_t &v,uint8_t *desc_addr);
+    inline void computeSmallDescriptor(const uint8_t* I_du,const uint8_t* I_dv,
+                                       const int32_t &bpl,const int32_t &u,const int32_t &v,uint8_t *desc_addr);
+    void computeDescriptors(uint8_t* I_du,uint8_t* I_dv,const int32_t bpl,std::vector<Matcher::maximum> &maxima);
 
     void getHalfResolutionDimensions(const int32_t *dims,int32_t *dims_half);
     uint8_t* createHalfResolutionImage(uint8_t *I,const int32_t* dims);
@@ -192,20 +205,22 @@ private:
     //          I_du ..... gradient in horizontal direction
     //          I_dv ..... gradient in vertical direction
     // WARNING: max,I_du,I_dv has to be freed by yourself!
-    void computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int32_t &num1,int32_t* &max2,int32_t &num2,uint8_t* &I_du,uint8_t* &I_dv,uint8_t* &I_du_full,uint8_t* &I_dv_full);
+    void computeFeatures(uint8_t *I,const int32_t* dims,int32_t* &max1,int32_t &num1,
+                          int32_t* &max2,int32_t &num2,uint8_t* &I_du,uint8_t* &I_dv,
+                          uint8_t* &I_du_full,uint8_t* &I_dv_full);
 
     // matching functions
     void computePriorStatistics (std::vector<Matcher::p_match> &p_matched,int32_t method);
-    void createIndexVector (int32_t* m,int32_t n,std::vector<int32_t> *k,const int32_t &u_bin_num,const int32_t &v_bin_num);
-    inline void findMatch (int32_t* m1,const int32_t &i1,int32_t* m2,const int32_t &step_size,
-                           std::vector<int32_t> *k2,const int32_t &u_bin_num,const int32_t &v_bin_num,const int32_t &stat_bin,
-                           int32_t& min_ind,int32_t stage,bool flow,bool use_prior,double u_=-1,double v_=-1);
-    void matching (int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
-                   int32_t n1p,int32_t n2p,int32_t n1c,int32_t n2c,
-                   std::vector<Matcher::p_match> &p_matched,int32_t method,bool use_prior,Matrix *Tr_delta = 0);
+    void createIndexVector(int32_t* m,int32_t n,std::vector<int32_t> *k,const int32_t &u_bin_num,const int32_t &v_bin_num);
+    inline void findMatch(int32_t* m1,const int32_t &i1,int32_t* m2,const int32_t &step_size,
+                          std::vector<int32_t> *k2,const int32_t &u_bin_num,const int32_t &v_bin_num,const int32_t &stat_bin,
+                          int32_t& min_ind,int32_t stage,bool flow,bool use_prior,double u_=-1,double v_=-1);
+    void matching(int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
+                  int32_t n1p,int32_t n2p,int32_t n1c,int32_t n2c,
+                  std::vector<Matcher::p_match> &p_matched,int32_t method,bool use_prior,Matrix *Tr_delta = 0);
 
     // outlier removal
-    void removeOutliers (std::vector<Matcher::p_match> &p_matched,int32_t method);
+    void removeOutliers(std::vector<Matcher::p_match> &p_matched,int32_t method);
 
     // parabolic fitting
     bool parabolicFitting(const uint8_t* I1_du,const uint8_t* I1_dv,const int32_t* dims1,
@@ -219,7 +234,7 @@ private:
                          const float &u1,const float &v1,
                          float       &u2,float       &v2,
                          uint8_t* desc_buffer);
-    void refinement (std::vector<Matcher::p_match> &p_matched,int32_t method);
+    void refinement(std::vector<Matcher::p_match> &p_matched,int32_t method);
 
     // mean for gain computation
     inline float mean(const uint8_t* I,const int32_t &bpl,const int32_t &u_min,const int32_t &u_max,const int32_t &v_min,const int32_t &v_max);
@@ -229,23 +244,50 @@ private:
     // 'p': previous.
     // 'v': vertical direction.
     // 'u': horizontal direction.
-    parameters param;
-    int32_t    margin;
-    int32_t *m1p1,*m2p1,*m1c1,*m2c1;
-    int32_t *m1p2,*m2p2,*m1c2,*m2c2;
-    int32_t n1p1,n2p1,n1c1,n2c1;
-    int32_t n1p2,n2p2,n1c2,n2c2;
-    uint8_t *I1p,*I2p,*I1c,*I2c;
-    uint8_t *I1p_du,*I2p_du,*I1c_du,*I2c_du;
-    uint8_t *I1p_dv,*I2p_dv,*I1c_dv,*I2c_dv;
-    uint8_t *I1p_du_full,*I2p_du_full,*I1c_du_full,*I2c_du_full; // only needed for
-    uint8_t *I1p_dv_full,*I2p_dv_full,*I1c_dv_full,*I2c_dv_full; // half-res matching
-    int32_t dims_p[3],dims_c[3];
+    parameters _param;
+    int32_t    _margin;
+    int32_t* _m1p1;
+    int32_t* _m2p1;
+    int32_t* _m1c1;
+    int32_t* _m2c1;
+    int32_t* _m1p2;
+    int32_t* _m2p2;
+    int32_t* _m1c2;
+    int32_t* _m2c2;
+    int32_t _n1p1;
+    int32_t _n2p1;
+    int32_t _n1c1;
+    int32_t _n2c1;
+    int32_t _n1p2;
+    int32_t _n2p2;
+    int32_t _n1c2;
+    int32_t _n2c2;
+    uint8_t* _I1p;
+    uint8_t* _I2p;
+    uint8_t* _I1c;
+    uint8_t* _I2c;
+    uint8_t* _I1p_du;
+    uint8_t* _I2p_du;
+    uint8_t* _I1c_du;
+    uint8_t* _I2c_du;
+    uint8_t* _I1p_dv;
+    uint8_t* _I2p_dv;
+    uint8_t* _I1c_dv;
+    uint8_t* _I2c_dv;
+    uint8_t* _I1p_du_full;
+    uint8_t* _I2p_du_full;
+    uint8_t* _I1c_du_full;
+    uint8_t* _I2c_du_full; // only needed for
+    uint8_t* _I1p_dv_full;
+    uint8_t* _I2p_dv_full;
+    uint8_t* _I1c_dv_full;
+    uint8_t* _I2c_dv_full; // half-res matching
+    int32_t _dims_p[3];
+    int32_t _dims_c[3];
 
-    std::vector<Matcher::p_match> p_matched_1;
-    std::vector<Matcher::p_match> p_matched_2;
-    std::vector<Matcher::range>   ranges;
+    std::vector<Matcher::p_match> _p_matched_1;
+    std::vector<Matcher::p_match> _p_matched_2;
+    std::vector<Matcher::range>   _ranges;
 };
 
 #endif
-
