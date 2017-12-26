@@ -5,7 +5,8 @@
 #include "ui_maindialog.h"
 #include "selectcamerasdialog.h"
 #include "../libviso2/src/timer.h"
-using namespace std;
+
+#define MAIN_DIALOG_DEBUG 0
 
 MainDialog::MainDialog(QWidget *parent) :
     QDialog(parent),
@@ -29,8 +30,8 @@ MainDialog::MainDialog(QWidget *parent) :
 
     // connect to the objects for communication.
     QObject::connect(_stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
-    QObject::connect(_visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
-    QObject::connect(_stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
+    //QObject::connect(_visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
+    //QObject::connect(_stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
     QObject::connect(_calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
 
     _frame_index = 0;
@@ -69,7 +70,7 @@ MainDialog::~MainDialog()
 
 //==============================================================================//
 
-string MainDialog::createNewOutputDirectory()
+std::string MainDialog::createNewOutputDirectory()
 {
     char buffer[1024];
     int system_status = 0;
@@ -86,7 +87,7 @@ string MainDialog::createNewOutputDirectory()
         sprintf(buffer,"output_%04d/",i);
         break;
     }
-    cout << "Creating output directory: " << buffer << endl;
+    std::cout << "Creating output directory: " << buffer << std::endl;
     char cmd[1024];
     sprintf(cmd,"mkdir %s",buffer);
 
@@ -225,10 +226,10 @@ void MainDialog::on_resetBusButton_clicked()
     //cam_right->resetBus();
 
     // show successfull reset message:
-    cout << endl;
-    cout << "=============================================" << endl;
-    cout << "The firewire bus has been reset successfully!" << endl;
-    cout << "=============================================" << endll;
+    std::cout << std::endl;
+    std::cout << "=============================================" << std::endl;
+    std::cout << "The firewire bus has been reset successfully!" << std::endl;
+    std::cout << "=============================================" << std::endl;
 }
 
 //==============================================================================//
@@ -334,6 +335,10 @@ void MainDialog::on_captureFromFirewireButton_clicked()
 
 void MainDialog::newStereoImageArrived()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::newStereoImageArrived" << std::endl;
+#endif
+
     // get stereo image deepcopy
     StereoImage::simage simg(*_stereo_image->getStereoImage());
     _stereo_image->pickedUp();
@@ -343,7 +348,7 @@ void MainDialog::newStereoImageArrived()
     {
         if (_frame_index!=0)
         {
-            cout << _stereo_image->timeDiff(simg.time,_last_frame_time) << endl;
+            std::cout << _stereo_image->timeDiff(simg.time,_last_frame_time) << std::endl;
         }
         _last_frame_time = simg.time;
         SaveStereoImageThread* save_thread = new SaveStereoImageThread(simg,_output_dir,_frame_index);
@@ -358,8 +363,8 @@ void MainDialog::newStereoImageArrived()
     }
 
     // check if any of the save threads have finished and must be deleted
-    vector<SaveStereoImageThread*> running_save_stereo_threads;
-    for (vector<SaveStereoImageThread*>::iterator it=_save_stereo_threads.begin(); it!=_save_stereo_threads.end(); it++)
+    std::vector<SaveStereoImageThread*> running_save_stereo_threads;
+    for (std::vector<SaveStereoImageThread*>::iterator it=_save_stereo_threads.begin(); it!=_save_stereo_threads.end(); it++)
     {
         if ((*it)->isRunning())
         {
@@ -504,33 +509,13 @@ void MainDialog::onNewCalibrationData()
     _calib->pickedUp();
     _calib->showCalibrationParameters();
 
-    /*
-    // Stop, disconnect, and delete the following threads which need the _calibration data.
-    if( cam_left->isRunning() )
-    {
-        cam_left->stopRecording();
-        cam_left->quit();
-        while( cam_left->isRunning() );
-    }
-    delete cam_left;
-    cam_left = 0;
-
-    if( cam_right->isRunning() )
-    {
-        cam_right->stopRecording();
-        cam_right->quit();
-        while( cam_right->isRunning() );
-    }
-    delete cam_right;
-    cam_right = 0;
-    */
-
     if( _visualOdomThread->isRunning() )
     {
         _visualOdomThread->quit();
         while( _visualOdomThread->isRunning() );
     }
-    _visualOdomThread->disconnect();
+    //_visualOdomThread->disconnect();
+    QObject::disconnect(_visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
     delete _visualOdomThread;
     _visualOdomThread = 0;
 
@@ -539,7 +524,8 @@ void MainDialog::onNewCalibrationData()
         _stereo_thread->quit();
         while( _stereo_thread->isRunning() );
     }
-    _stereo_thread->disconnect();
+    //_stereo_thread->disconnect();
+    QObject::disconnect(_stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
     delete _stereo_thread;
     _stereo_thread = 0;
 
@@ -549,9 +535,9 @@ void MainDialog::onNewCalibrationData()
     _visualOdomThread     = new VisualOdometryThread(_calib);
     _stereo_thread = new StereoThread(_calib,_ui->modelView);
 
-    // connect to the objects for communication.
-    QObject::connect(_stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
+    // connect to the objects for communication.    
+    //QObject::connect(_stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
     QObject::connect(_visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
     QObject::connect(_stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
-    QObject::connect(_calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
+    //QObject::connect(_calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
 }

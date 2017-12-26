@@ -12,7 +12,7 @@ class SaveStereoImageThread : public QThread
 
 public:
 
-  SaveStereoImageThread(StereoImage::simage simg,std::string output_dir,int frame_number,QObject *parent = 0);
+  SaveStereoImageThread(StereoImage::simage& simg,std::string output_dir,int frame_number,QObject *parent = 0);
   ~SaveStereoImageThread();
 
 protected:
@@ -21,7 +21,7 @@ protected:
 
 private:
 
-  StereoImage::simage *_simg;
+  StereoImage::simage* _simg;
   int _frame_number;
   std::string _output_dir;
 

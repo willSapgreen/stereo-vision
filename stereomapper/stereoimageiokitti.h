@@ -26,8 +26,8 @@
 
 enum ImageInputSource
 {
-    GRAY_LEFT = 0,
-    GRAY_RIGHT,
+    IMAGE_INPUT_SOURCE_GRAY_LEFT = 0,
+    IMAGE_INPUT_SOURCE_GRAY_RIGHT,
 
     IMAGE_INPUT_SOURCE_COUNT
 };
@@ -53,12 +53,10 @@ public:
     virtual ~StereoImageIOKITTI();
 
     /*
-     * Process the left and right gray images and timestamp.
+     * Set up left and right image directories and timestamps.
      */
-    bool fetchGrayStereoImage(const std::string& left_images_directory,
-                              const std::string& left_images_timestamp,
-                              const std::string& right_images_directory,
-                              const std::string& right_images_timestamp);
+    bool setUpDataPath(const std::string images_directory[IMAGE_INPUT_SOURCE_COUNT],
+                       const std::string images_timestamp[IMAGE_INPUT_SOURCE_COUNT]);
 
     /*
      * Get the size of the storage.
@@ -69,16 +67,28 @@ public:
     }
 
     /*
-     * Get the nth left and right gray ImageDataCV.
-     * 0 <= nth < the size of the storage.
+     * Get the current image index.
+     * TODO:
+     * Using mutex!!!
      */
-    bool getLeftRightImageData(int nth, ImageDataCV& left_image, ImageDataCV& right_image);
+    inline int32_t getImageIndex() const
+    {
+        return _image_index;
+    }
+
+    /*
+     * Get the next ImageDataCV set.
+     */
+    bool getNextImageDataSet(ImageDataCV image_set[IMAGE_INPUT_SOURCE_COUNT]);
 
 private:
 
     int32_t _images_number;
-    std::unique_ptr<ImageDataCV[]> _left_gray_images;
-    std::unique_ptr<ImageDataCV[]> _right_gray_images;
+    int32_t _image_index;
+    //ImageDataCV _image_set[IMAGE_INPUT_SOURCE_COUNT];
+    std::ifstream _time_stamp_stream[IMAGE_INPUT_SOURCE_COUNT];
+    std::string _images_directory[IMAGE_INPUT_SOURCE_COUNT];
+    std::string _timestamp_file[IMAGE_INPUT_SOURCE_COUNT];
 };
 
 #endif

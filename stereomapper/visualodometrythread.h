@@ -17,7 +17,7 @@ public:
 
     VisualOdometryThread(CalibIOKITTI *calib,QObject *parent = 0);
     ~VisualOdometryThread();
-    void pushBack(StereoImage::simage &s,bool record_raw_odometry_=false);
+    void pushBack(StereoImage::simage& s,bool record_raw_odometry=false);
     std::vector<Matcher::p_match> getMatches() { return _visualOdomStereo->getMatches(); }
     std::vector<bool> getInliers() { return _inliers; }
     StereoImage::simage* getStereoImage() { return _simg; }

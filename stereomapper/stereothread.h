@@ -19,8 +19,8 @@ public:
 
     StereoThread(CalibIOKITTI *calib,View3D *modelView,QObject *parent = 0);
     ~StereoThread();
-    void pushBack(StereoImage::simage &s,Matrix H_total,float gain);
-    void pushBack(StereoImage::simage &s,bool subsampling);
+    void pushBack(StereoImage::simage& s,Matrix H_total,float gain);
+    void pushBack(StereoImage::simage& s,bool subsampling);
     StereoImage::simage* getStereoImage() { return _simg; }
     std::vector< std::vector<View3D::point_3d> > getPoints ()
     {

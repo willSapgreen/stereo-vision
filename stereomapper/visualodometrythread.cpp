@@ -70,7 +70,7 @@ VisualOdometryThread::~VisualOdometryThread()
 
 //==============================================================================//
 
-void VisualOdometryThread::pushBack(StereoImage::simage &s,bool record_raw_odometry_)
+void VisualOdometryThread::pushBack(StereoImage::simage& s,bool record_raw_odometry)
 {
     if (_simg!=0)
     {
@@ -78,7 +78,7 @@ void VisualOdometryThread::pushBack(StereoImage::simage &s,bool record_raw_odome
         _simg = 0;
     }
     _simg = new StereoImage::simage(s);
-    _record_raw_odometry = record_raw_odometry_;
+    _record_raw_odometry = record_raw_odometry;
 }
 
 //==============================================================================//

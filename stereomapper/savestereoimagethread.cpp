@@ -2,11 +2,18 @@
 
 using namespace std;
 
-SaveStereoImageThread::SaveStereoImageThread(StereoImage::simage simg,string output_dir,int frame_number,QObject *parent) :
+SaveStereoImageThread::SaveStereoImageThread(StereoImage::simage& simg,string output_dir,int frame_number,QObject *parent) :
     QThread(parent)
 {
     _frame_number = frame_number;
     _output_dir = output_dir;
+
+    if(_simg != 0)
+    {
+        delete _simg;
+        _simg = 0;
+    }
+
     _simg = new StereoImage::simage(simg);
 }
 

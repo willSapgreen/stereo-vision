@@ -44,15 +44,15 @@ public:
          */
         simage ()
         {
-          I1           = 0;
-          I2           = 0;
-          D1           = 0;
-          D2           = 0;
-          width        = 0;
-          height       = 0;
-          step         = 0;
-          time.tv_sec  = 0;
-          time.tv_usec = 0;
+            I1           = 0;
+            I2           = 0;
+            D1           = 0;
+            D2           = 0;
+            width        = 0;
+            height       = 0;
+            step         = 0;
+            time.tv_sec  = 0;
+            time.tv_usec = 0;
         }
 
         /*

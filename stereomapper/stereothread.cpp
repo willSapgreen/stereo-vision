@@ -35,7 +35,7 @@ StereoThread::~StereoThread()
 
 //==============================================================================//
 
-void StereoThread::pushBack(StereoImage::simage &s,Matrix H,float gain)
+void StereoThread::pushBack(StereoImage::simage& s,Matrix H,float gain)
 {
     if (_simg!=0)
     {
@@ -51,7 +51,7 @@ void StereoThread::pushBack(StereoImage::simage &s,Matrix H,float gain)
 
 //==============================================================================//
 
-void StereoThread::pushBack(StereoImage::simage &s,bool subsampling_)
+void StereoThread::pushBack(StereoImage::simage& s,bool subsampling)
 {
     if (_simg!=0)
     {
@@ -60,7 +60,7 @@ void StereoThread::pushBack(StereoImage::simage &s,bool subsampling_)
     }
     _simg = new StereoImage::simage(s);
     _mode = 1;
-    _subsampling = subsampling_;
+    _subsampling = subsampling;
 }
 
 //==============================================================================//

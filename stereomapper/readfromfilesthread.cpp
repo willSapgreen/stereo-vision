@@ -1,7 +1,7 @@
 #include "readfromfilesthread.h"
 #include "QFileDialog"
 
-using namespace std;
+#define READ_FROM_FILES_THREAD_DEBUG 0
 
 ReadFromFilesThread::ReadFromFilesThread( StereoImage *stereo_image, CalibIOKITTI *_calib,
                                           StereoImageIOKITTI* stereo_image_io, OxTSIOKITTI* oxts_io, QObject *parent)
@@ -42,14 +42,16 @@ void ReadFromFilesThread::run()
         // Show calibration parameters.
         _calib->showCalibrationParameters();
 
-        // Process left/right images and timestamp.
-        bool process_succeed = _stereo_image_io->fetchGrayStereoImage(input_dir_str + DEFAULT_IMAGE00_DATA_PATH,
-                                                                      input_dir_str + DEFAULT_IMAGE00_TIMESTAMP_TXT_PATH,
-                                                                      input_dir_str + DEFAULT_IMAGE01_DATA_PATH,
-                                                                      input_dir_str + DEFAULT_IMAGE01_TIMESTAMP_TXT_PATH) &&
+        std::string image_timestamp_files[IMAGE_INPUT_SOURCE_COUNT];
+        std::string image_directories[IMAGE_INPUT_SOURCE_COUNT];
+        image_timestamp_files[IMAGE_INPUT_SOURCE_GRAY_LEFT] = input_dir_str + DEFAULT_IMAGE00_TIMESTAMP_TXT_PATH;
+        image_timestamp_files[IMAGE_INPUT_SOURCE_GRAY_RIGHT] = input_dir_str + DEFAULT_IMAGE01_TIMESTAMP_TXT_PATH;
+        image_directories[IMAGE_INPUT_SOURCE_GRAY_LEFT] = input_dir_str + DEFAULT_IMAGE00_DATA_PATH;
+        image_directories[IMAGE_INPUT_SOURCE_GRAY_RIGHT] = input_dir_str + DEFAULT_IMAGE01_DATA_PATH;
+
+        bool process_succeed = _stereo_image_io->setUpDataPath(image_directories, image_timestamp_files) &&
                                _oxts_io->fetchGrayOxTSData(input_dir_str + DEFAULT_OXTS_DATA_PATH,
                                                            input_dir_str + DEFAULT_OXTS_TIMESTAMP_TXT_PATH);
-
         if (!process_succeed)
         {
             return;
@@ -57,29 +59,32 @@ void ReadFromFilesThread::run()
 
         // start output loop
         float fps = 10;
-        ImageDataCV left_img;
-        ImageDataCV right_img;
+        ImageDataCV image_set[IMAGE_INPUT_SOURCE_COUNT];
         unsigned char* left_img_data;
         unsigned char* right_img_data;
         for (int32_t i=0; i<(int32_t)_stereo_image_io->getImagesNumber(); ++i)
         {
-            _stereo_image_io->getLeftRightImageData(i, left_img, right_img);
+            _stereo_image_io->getNextImageDataSet(image_set);
 
             // Get the raw data.
-            cvGetRawData(left_img._image, &left_img_data);
-            cvGetRawData(right_img._image, &right_img_data);
+            cvGetRawData(image_set[IMAGE_INPUT_SOURCE_GRAY_LEFT]._image, &left_img_data);
+            cvGetRawData(image_set[IMAGE_INPUT_SOURCE_GRAY_RIGHT]._image, &right_img_data);
 
-            _stereo_image->setImage(left_img_data, left_img._image->width,
-                                    left_img._image->height, left_img._image->widthStep,
-                                    true, true, left_img._captured_time);
-            _stereo_image->setImage(right_img_data, right_img._image->width,
-                                    right_img._image->height, right_img._image->widthStep,
-                                    false, true, right_img._captured_time);
+            _stereo_image->setImage(left_img_data,
+                                    image_set[IMAGE_INPUT_SOURCE_GRAY_LEFT]._image->width,
+                                    image_set[IMAGE_INPUT_SOURCE_GRAY_LEFT]._image->height,
+                                    image_set[IMAGE_INPUT_SOURCE_GRAY_LEFT]._image->widthStep,
+                                    true, true, image_set[IMAGE_INPUT_SOURCE_GRAY_RIGHT]._captured_time);
+            _stereo_image->setImage(right_img_data,
+                                    image_set[IMAGE_INPUT_SOURCE_GRAY_RIGHT]._image->width,
+                                    image_set[IMAGE_INPUT_SOURCE_GRAY_RIGHT]._image->height,
+                                    image_set[IMAGE_INPUT_SOURCE_GRAY_RIGHT]._image->widthStep,
+                                    false, true, image_set[IMAGE_INPUT_SOURCE_GRAY_RIGHT]._captured_time);
             usleep(1e6/fps);
         }
     }
     else
     {
-        cout << "No calibration file found => No files read." << endl;
+        std::cout << "No calibration file found => No files read." << std::endl;
     }
 }
