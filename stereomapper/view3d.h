@@ -21,8 +21,8 @@ public:
 
     View3D(QWidget *parent = 0);
     ~View3D();
-    void addCamera (Matrix H_total,float s,bool keyframe);
-    void addPoints (std::vector< std::vector<point_3d> > p);
+    void addCamera(Matrix H_total, float s, bool keyframe);
+    void addPoints(std::vector<std::vector<point_3d>> p);
     void clearAll ()
     {
         _cams.clear();

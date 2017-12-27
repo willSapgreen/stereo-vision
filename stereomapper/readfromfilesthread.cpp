@@ -1,7 +1,7 @@
 #include "readfromfilesthread.h"
 #include "QFileDialog"
 
-#define READ_FROM_FILES_THREAD_DEBUG 0
+#define READ_FROM_FILES_THREAD_DEBUG 1
 
 ReadFromFilesThread::ReadFromFilesThread( StereoImage *stereo_image, CalibIOKITTI *_calib,
                                           StereoImageIOKITTI* stereo_image_io, OxTSIOKITTI* oxts_io, QObject *parent)
@@ -80,6 +80,13 @@ void ReadFromFilesThread::run()
                                     image_set[IMAGE_INPUT_SOURCE_GRAY_RIGHT]._image->height,
                                     image_set[IMAGE_INPUT_SOURCE_GRAY_RIGHT]._image->widthStep,
                                     false, true, image_set[IMAGE_INPUT_SOURCE_GRAY_RIGHT]._captured_time);
+
+            // Release the memory in IplImage.
+            for(int j = 0; j < IMAGE_INPUT_SOURCE_COUNT; ++j)
+            {
+                cvReleaseImage(&(image_set[j]._image));
+            }
+
             usleep(1e6/fps);
         }
     }

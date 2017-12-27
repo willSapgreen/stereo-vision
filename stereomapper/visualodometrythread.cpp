@@ -70,7 +70,7 @@ VisualOdometryThread::~VisualOdometryThread()
 
 //==============================================================================//
 
-void VisualOdometryThread::pushBack(StereoImage::simage& s,bool record_raw_odometry)
+void VisualOdometryThread::pushBack(StereoImage::simage& s, bool record_raw_odometry)
 {
     if (_simg!=0)
     {
@@ -96,7 +96,7 @@ void VisualOdometryThread::run()
         dim[1] = _simg->height;
         dim[2] = _simg->step;
 
-        _visualOdomStereo->process(_simg->I1,_simg->I2,dim,false);
+        _visualOdomStereo->process(_simg->I1, _simg->I2, dim, false);
         Matrix H_inv = Matrix::eye(4);
         Matrix H = _visualOdomStereo->getMotion();
 

@@ -122,7 +122,7 @@ void View3D::wheelEvent(QWheelEvent *event)
 
 //==============================================================================//
 
-void View3D::addCamera (Matrix H_total,float s,bool keyframe)
+void View3D::addCamera(Matrix H_total, float s, bool keyframe)
 {
     // create list with points for this camera
     Matrix C(4,10);
@@ -162,7 +162,7 @@ void View3D::addCamera (Matrix H_total,float s,bool keyframe)
 
 //==============================================================================//
 
-void View3D::addPoints (vector< vector<point_3d> > p)
+void View3D::addPoints(std::vector<std::vector<point_3d>> p)
 {
     makeCurrent();
 
@@ -179,7 +179,7 @@ void View3D::addPoints (vector< vector<point_3d> > p)
         if (0)
         {
             // allocate bins
-            vector< vector<point_3d> > points;
+            vector<vector<point_3d>> points;
             for (int32_t j=0; j<256; j++)
             {
                 points.push_back(vector<point_3d>());

@@ -435,16 +435,22 @@ void MainDialog::newStereoImageArrived()
 
 void MainDialog::newHomographyArrived()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::newHomographyArrived" << std::endl;
+#endif
+
     // get stereo image deepcopy
     StereoImage::simage simg(*_visualOdomThread->getStereoImage());
     Matrix H_total = _visualOdomThread->getHomographyTotal();
     _gain_total *= _visualOdomThread->getGain();
     _visualOdomThread->pickedUp();
 
+#if MAIN_DIALOG_DEBUG
     // Output the homography.
     std::cout << "Frame index: " << _frame_index << " || "
               << "Time stamp: " << ( simg.time.tv_sec * 1000 + simg.time.tv_usec ) << std::endl;
     std::cout << H_total << std::endl;
+#endif
 
     // show quad match
     _ui->leftImageView->setImage(simg.I1,simg.width,simg.height);
@@ -472,6 +478,10 @@ void MainDialog::newHomographyArrived()
 
 void MainDialog::newDisparityMapArrived()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::newDisparityMapArrived" << std::endl;
+#endif
+
     // get stereo image deepcopy
     StereoImage::simage simg(*_stereo_thread->getStereoImage());
 

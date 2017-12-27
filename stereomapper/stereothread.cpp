@@ -94,8 +94,20 @@ void StereoThread::run()
         d_height = _simg->height/2;
         param.subsampling = 1;
     }
+
+    if(_simg->D1 != 0)
+    {
+        free(_simg->D1);
+        _simg->D1 = 0;
+    }
     _simg->D1 = (float*)malloc(d_width*d_height*sizeof(float));
+    if(_simg->D2 != 0)
+    {
+        free(_simg->D2);
+        _simg->D2 = 0;
+    }
     _simg->D2 = (float*)malloc(d_width*d_height*sizeof(float));
+
     const int32_t dims[3] = {_simg->width,_simg->height,_simg->step};
 
     Elas elas(param);
@@ -107,8 +119,8 @@ void StereoThread::run()
     {
       free (_D_color);
     }
-
     _D_color = (float*)malloc(3*d_width*d_height*sizeof(float));
+
     for (int32_t u=0; u<d_width; u++)
     {
         for (int32_t v=0; v<d_height; v++)
@@ -244,13 +256,33 @@ StereoThread::map3d StereoThread::createCurrentMap()
 
 //==============================================================================//
 
-void StereoThread::releaseMap(map3d m)
+void StereoThread::releaseMap(map3d& m)
 {
-    free(m.I);
-    free(m.D);
-    free(m.X);
-    free(m.Y);
-    free(m.Z);
+    if(m.I != 0)
+    {
+        free(m.I);
+        m.I = 0;
+    }
+    if(m.D != 0)
+    {
+        free(m.D);
+        m.D = 0;
+    }
+    if(m.X != 0)
+    {
+        free(m.X);
+        m.X = 0;
+    }
+    if(m.Y != 0)
+    {
+        free(m.Y);
+        m.Y = 0;
+    }
+    if(m.Z != 0)
+    {
+        free(m.Z);
+        m.Z = 0;
+    }
 }
 
 //==============================================================================//
@@ -258,16 +290,17 @@ void StereoThread::releaseMap(map3d m)
 void StereoThread::addDisparityMapToReconstruction()
 {
     // current map
-    map3d m_curr = createCurrentMap();
+    map3d current_map3d = createCurrentMap();
 
     // if previous map exists => try to associate with current map
-    if (_maps3d.size()>0)
+    if((_previous_map3d.I != 0) &&
+       (_previous_map3d.D != 0) &&
+       (_previous_map3d.X != 0) &&
+       (_previous_map3d.Y != 0) &&
+       (_previous_map3d.Z != 0))
     {
-        // previous map
-        map3d m_prev = _maps3d.back();
-
         // projection from first coordinate system to current coordinate system
-        Matrix H = Matrix::inv(m_curr.H);
+        Matrix H = Matrix::inv(current_map3d.H);
         float hfc20 = H._val[2][0]; float hfc21 = H._val[2][1]; float hfc22 = H._val[2][2]; float hfc23 = H._val[2][3];
 
         // projection from first coordinate system to current image plane
@@ -279,21 +312,21 @@ void StereoThread::addDisparityMapToReconstruction()
         std::vector<View3D::point_3d> points_prev;
 
         // for all pixels in previous image do
-        for (int32_t u=0; u<m_prev.width; u++)
+        for (int32_t u=0; u<_previous_map3d.width; u++)
         {
-            for (int32_t v=0; v<m_prev.height; v++)
+            for (int32_t v=0; v<_previous_map3d.height; v++)
             {
                 // get pixel address and disparity
-                int32_t addr = v*m_prev.width+u;
-                float   d    = m_prev.D[addr];
+                int32_t addr = v*_previous_map3d.width+u;
+                float   d    = _previous_map3d.D[addr];
 
                 // if disparity is valid
                 if (d>0)
                 {
                     // grab 3d coordinates in first coordinate system
-                    float x  = m_prev.X[addr];
-                    float y  = m_prev.Y[addr];
-                    float z  = m_prev.Z[addr];
+                    float x  = _previous_map3d.X[addr];
+                    float y  = _previous_map3d.Y[addr];
+                    float z  = _previous_map3d.Z[addr];
 
                     // map to current coordinate system
                     float z2 = hfc20*x+hfc21*y+hfc22*z+hfc23;
@@ -307,11 +340,11 @@ void StereoThread::addDisparityMapToReconstruction()
                         int32_t v2 = (int32_t)((pfc10*x+pfc11*y+pfc12*z+pfc13)/w2);
 
                         // if within image
-                        if (u2>=0 && u2<m_curr.width && v2>=0 && v2<m_curr.height)
+                        if (u2>=0 && u2<current_map3d.width && v2>=0 && v2<current_map3d.height)
                         {
                             // get pixel address and disparity
-                            int32_t addr2 = v2*m_curr.width+u2;
-                            float   d2    = m_curr.D[addr2];
+                            int32_t addr2 = v2*current_map3d.width+u2;
+                            float   d2    = current_map3d.D[addr2];
 
                             bool added = false;
 
@@ -321,13 +354,13 @@ void StereoThread::addDisparityMapToReconstruction()
                                 // TODO: THIS VALUE DEPENDS ON THE SCENARIO!!
                                 // if the points are close enough: compute
                                 // new position as average from previous and current
-                                if (fabs(x-m_curr.X[addr2])+fabs(y-m_curr.Y[addr2])+fabs(z-m_curr.Z[addr2])<0.2)
+                                if (fabs(x-current_map3d.X[addr2])+fabs(y-current_map3d.Y[addr2])+fabs(z-current_map3d.Z[addr2])<0.2)
                                 {
-                                    m_curr.X[addr2] = (m_curr.X[addr2]+x)/2.0;
-                                    m_curr.Y[addr2] = (m_curr.Y[addr2]+y)/2.0;
-                                    m_curr.Z[addr2] = (m_curr.Z[addr2]+z)/2.0;
-                                    m_curr.I[addr2] = (m_curr.I[addr2]+m_prev.I[addr])/2.0;
-                                    //m_curr.I[addr2] = m_prev.I[addr];
+                                    current_map3d.X[addr2] = (current_map3d.X[addr2]+x)/2.0;
+                                    current_map3d.Y[addr2] = (current_map3d.Y[addr2]+y)/2.0;
+                                    current_map3d.Z[addr2] = (current_map3d.Z[addr2]+z)/2.0;
+                                    current_map3d.I[addr2] = (current_map3d.I[addr2]+_previous_map3d.I[addr])/2.0;
+                                    //current_map3d.I[addr2] = _previous_map3d.I[addr];
                                     added = true;
                                 }
 
@@ -335,53 +368,62 @@ void StereoThread::addDisparityMapToReconstruction()
                             }
                             else
                             {
-                                m_curr.X[addr2] = x;
-                                m_curr.Y[addr2] = y;
-                                m_curr.Z[addr2] = z;
-                                m_curr.I[addr2] = m_prev.I[addr];
-                                m_curr.D[addr2] = 1; // set valid
+                                current_map3d.X[addr2] = x;
+                                current_map3d.Y[addr2] = y;
+                                current_map3d.Z[addr2] = z;
+                                current_map3d.I[addr2] = _previous_map3d.I[addr];
+                                current_map3d.D[addr2] = 1; // set valid
                                 added = true;
                             }
 
                             // invalidate current pixel in previous image
-                            if (added) m_prev.D[addr] = -1;
-                            else       points_prev.push_back( View3D::point_3d(x,y,z,m_prev.I[addr]) );
+                            if (added) _previous_map3d.D[addr] = -1;
+                            else       points_prev.push_back( View3D::point_3d(x,y,z,_previous_map3d.I[addr]) );
 
                         // add to previous points
                         }
                         else
                         {
-                            points_prev.push_back( View3D::point_3d(x,y,z,m_prev.I[addr]) );
+                            points_prev.push_back( View3D::point_3d(x,y,z,_previous_map3d.I[addr]) );
                         }
                     }
                     else
                     {
-                        points_prev.push_back( View3D::point_3d(x,y,z,m_prev.I[addr]) );
+                        points_prev.push_back( View3D::point_3d(x,y,z,_previous_map3d.I[addr]) );
                     }
                 }
             }
         }
 
+        // The original design(the code below) actually does not replace previous points.
+        // It removes the points_curr in the previous round and keeps the points_prev.
         // replace previous points
-        _points.pop_back();
+        //_points.pop_back();
+        //_points.push_back(points_prev);
+
+        // Fix
+        _points.clear();
         _points.push_back(points_prev);
     }
 
     std::vector<View3D::point_3d> points_curr;
 
     // for all pixels do
-    for (int32_t u=0; u<m_curr.width; u++)
+    for (int32_t u = 0; u < current_map3d.width; u++)
     {
-        for (int32_t v=0; v<m_curr.height; v++)
+        for (int32_t v = 0; v < current_map3d.height; v++)
         {
             // get pixel address and disparity
-            int32_t addr = v*m_curr.width+u;
-            float   d    = m_curr.D[addr];
+            int32_t addr = v * current_map3d.width + u;
+            float   d    = current_map3d.D[addr];
 
             // if disparity is valid: add 3d coordinates to point cloud
             if (d>0)
             {
-                points_curr.push_back( View3D::point_3d(m_curr.X[addr],m_curr.Y[addr],m_curr.Z[addr],m_curr.I[addr]) );
+                points_curr.push_back( View3D::point_3d(current_map3d.X[addr],
+                                                        current_map3d.Y[addr],
+                                                        current_map3d.Z[addr],
+                                                        current_map3d.I[addr]) );
             }
         }
     }
@@ -389,8 +431,9 @@ void StereoThread::addDisparityMapToReconstruction()
     // set current points
     _points.push_back(points_curr);
 
-    // add current map
-    _maps3d.push_back(m_curr);
+    // update previous map3d.
+    _previous_map3d = current_map3d;
+    releaseMap(current_map3d);
 }
 
 //==============================================================================//
@@ -416,11 +459,12 @@ void StereoThread::getIntrinsics()
 
 void StereoThread::clearReconstruction()
 {
-    for (vector<map3d>::iterator it = _maps3d.begin(); it != _maps3d.end(); it++)
-    {
-        releaseMap(*it);
-    }
-    _maps3d.clear();
+    //for (vector<map3d>::iterator it = _maps3d.begin(); it != _maps3d.end(); it++)
+    //{
+    //    releaseMap(*it);
+    //}
+    //_maps3d.clear();
+    releaseMap(_previous_map3d);
     _points.clear();
     _plane_estimated = false;
 }

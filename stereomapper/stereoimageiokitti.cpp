@@ -1,6 +1,6 @@
 #include "stereoimageiokitti.h"
 
-#define STEREO_IMAGE_IO_KITTI_DEBUG 1
+#define STEREO_IMAGE_IO_KITTI_DEBUG 0
 
 StereoImageIOKITTI::StereoImageIOKITTI()
     : _images_number(0)

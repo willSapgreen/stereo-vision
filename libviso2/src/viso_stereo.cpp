@@ -41,7 +41,7 @@ VisualOdometryStereo::~VisualOdometryStereo()
 bool VisualOdometryStereo::process(uint8_t *I1,uint8_t *I2,int32_t* dims,bool replace)
 {
     // push back images
-    _matcher->pushBack(I1,I2,dims,replace);
+    _matcher->pushBack(I1, I2, dims, replace);
 
     // bootstrap motion estimate if invalid
     if(!_Tr_valid)
