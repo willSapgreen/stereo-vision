@@ -2,6 +2,9 @@
 
 This README would normally document whatever steps are necessary to get your application up and running.
 
+### YouTube video ###
+https://youtu.be/FdMsZ2LuRbg
+
 ### What is this repository for? ###
 
 stereo-vision is a tool which contains the following computer vision and machine learning developments,
