@@ -94,37 +94,7 @@
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
    <item row="1" column="0">
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QPushButton" name="captureFromFirewireButton">
-       <property name="text">
-        <string>Start Grabbing</string>
-       </property>
-       <property name="checkable">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="stopCapturingButton">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="text">
-        <string>Stop Grabbing</string>
-       </property>
-       <property name="checkable">
-        <bool>false</bool>
-       </property>
-       <property name="default">
-        <bool>false</bool>
-       </property>
-       <property name="flat">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-    </layout>
+    <layout class="QHBoxLayout" name="horizontalLayout"/>
    </item>
    <item row="2" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_7">
@@ -132,16 +102,9 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QPushButton" name="resetBusButton">
-       <property name="text">
-        <string>Reset Bus</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="stereoScanButton">
        <property name="text">
-        <string>Scan !</string>
+        <string>Scan</string>
        </property>
       </widget>
      </item>
@@ -158,42 +121,7 @@
     </layout>
    </item>
    <item row="3" column="0">
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
-      <widget class="QSpinBox" name="shutterSpinBox">
-       <property name="minimum">
-        <number>10</number>
-       </property>
-       <property name="maximum">
-        <number>1000</number>
-       </property>
-       <property name="value">
-        <number>100</number>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="recordRawOdometryCheckBox">
-       <property name="text">
-        <string>Record VO</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="readFromFilesCheckBox">
-       <property name="text">
-        <string>Read</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="saveToFilesCheckBox">
-       <property name="text">
-        <string>Save</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
+    <layout class="QHBoxLayout" name="horizontalLayout_2"/>
    </item>
    <item row="0" column="0">
     <widget class="QTabWidget" name="tabWidget">

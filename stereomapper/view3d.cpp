@@ -3,6 +3,8 @@
 #include <math.h>
 #include "../libviso2/src/matrix.h"
 
+#define VIDW_3D_DEBUG 0
+
 using namespace std;
 
 View3D::View3D(QWidget *parent) :
@@ -380,7 +382,9 @@ void View3D::resizeGL(int width, int height)
 {
     makeCurrent();
 
+#if VIDW_3D_DEBUG
     cout << "GL Viewport size: " << width << " x " << height << endl;
+#endif
 
     int side = qMax(width, height);
     glViewport((width-side)/2,(height-side)/2,side,side);

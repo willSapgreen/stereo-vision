@@ -1,5 +1,7 @@
 #include "oxtsiokitti.h"
 
+#define OXTSIO_KITTI_DEBUG 0
+
 OxTSIOKITTI::OxTSIOKITTI()
     : _data_size(0)
     , _oxts_data_set(nullptr)
@@ -62,7 +64,9 @@ bool OxTSIOKITTI::fetchGrayOxTSData(const std::string& oxts_data_directory,
             ss << std::setw(10) << std::setfill('0') << count << ".txt";
             std::string oxts_file_path = oxts_data_directory + "//" + ss.str();
 
+#if OXTSIO_KITTI_DEBUG
             std::cout << "Reading in " << ss.str() << std::endl;
+#endif
 
             readInOxTSData(oxts_file_path, _oxts_data_set[count]);
             ++count;

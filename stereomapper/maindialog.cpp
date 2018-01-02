@@ -19,8 +19,6 @@ MainDialog::MainDialog(QWidget *parent) :
     _time_of_last_frame.tv_usec = 0;
     _calib = new CalibIOKITTI();
     _capture_mutex = new QMutex();
-    //cam_left      = new FrameCaptureThread(_stereo_image,_calib,true,_capture_mutex);
-    //cam_right     = new FrameCaptureThread(_stereo_image,_calib,false,_capture_mutex);
     _visualOdomThread     = new VisualOdometryThread(_calib);
     _stereo_thread = new StereoThread(_calib,_ui->modelView);
     _stereo_image_io = new StereoImageIOKITTI();
@@ -30,8 +28,6 @@ MainDialog::MainDialog(QWidget *parent) :
 
     // connect to the objects for communication.
     QObject::connect(_stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
-    //QObject::connect(_visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
-    //QObject::connect(_stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
     QObject::connect(_calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
 
     _frame_index = 0;
@@ -42,7 +38,6 @@ MainDialog::MainDialog(QWidget *parent) :
     p.setColor(QPalette::Background, Qt::white);
     setPalette(p);
 
-    _ui->shutterSpinBox->setValue(_settings->value("shutter_value","100").toInt());
     _ui->modelView->setBackgroundWallFlag(_ui->backgroundWallCheckBox->isChecked());
     _ui->modelView->setShowCamerasFlag(_ui->showCamerasCheckBox->isChecked());
     _ui->modelView->setGridFlag(_ui->gridCheckBox->isChecked());
@@ -54,8 +49,6 @@ MainDialog::MainDialog(QWidget *parent) :
 MainDialog::~MainDialog()
 {
     delete _ui;
-    //delete cam_left;
-    //delete cam_right;
     delete _capture_mutex;
     delete _stereo_image;
     delete _calib;
@@ -66,36 +59,6 @@ MainDialog::~MainDialog()
     delete _settings;
     delete _stereo_image_io;
     delete _oxts_io;
-}
-
-//==============================================================================//
-
-std::string MainDialog::createNewOutputDirectory()
-{
-    char buffer[1024];
-    int system_status = 0;
-
-    for (int32_t i=0; i<9999; i++)
-    {
-        sprintf(buffer,"output_%04d/I1_000000.png",i);
-        FILE *file = fopen (buffer,"r");
-        if (file!=NULL)
-        {
-            fclose (file);
-            continue;
-        }
-        sprintf(buffer,"output_%04d/",i);
-        break;
-    }
-    std::cout << "Creating output directory: " << buffer << std::endl;
-    char cmd[1024];
-    sprintf(cmd,"mkdir %s",buffer);
-
-    // Do nothing. Just for resolving the warning message.
-    system_status = system(cmd);
-    if( system_status ) {};
-
-    return buffer;
 }
 
 //==============================================================================//
@@ -116,15 +79,12 @@ void MainDialog::keyPressEvent(QKeyEvent * event)
 
 //==============================================================================//
 
-void MainDialog::on_shutterSpinBox_valueChanged(int )
-{
-    _settings->setValue("shutter_value",_ui->shutterSpinBox->value());
-}
-
-//==============================================================================//
-
 void MainDialog::on_resizeSmallPushButton_clicked()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_resizeSmallPushButton_clicked" << std::endl;
+#endif
+
     int minw = _ui->modelView->minimumWidth();
     int minh = _ui->modelView->minimumHeight();
     int maxw = _ui->modelView->maximumWidth();
@@ -151,6 +111,10 @@ void MainDialog::on_resizeSmallPushButton_clicked()
 
 void MainDialog::on_whiteCheckBox_clicked()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_whiteCheckBox_clicked" << std::endl;
+#endif
+
     _ui->modelView->setWhiteFlag(_ui->whiteCheckBox->isChecked());
 }
 
@@ -158,6 +122,10 @@ void MainDialog::on_whiteCheckBox_clicked()
 
 void MainDialog::on_gridCheckBox_clicked()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_gridCheckBox_clicked" << std::endl;
+#endif
+
     _ui->modelView->setGridFlag(_ui->gridCheckBox->isChecked());
 }
 
@@ -165,6 +133,10 @@ void MainDialog::on_gridCheckBox_clicked()
 
 void MainDialog::on_recordPosesPushButton_clicked()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_recordPosesPushButton_clicked" << std::endl;
+#endif
+
     _ui->modelView->playPoses(true);
 }
 
@@ -172,6 +144,10 @@ void MainDialog::on_recordPosesPushButton_clicked()
 
 void MainDialog::on_playPosesPushButton_clicked()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_playPosesPushButton_clicked" << std::endl;
+#endif
+
     _ui->modelView->playPoses(false);
 }
 
@@ -179,6 +155,10 @@ void MainDialog::on_playPosesPushButton_clicked()
 
 void MainDialog::on_deletePosePushButton_clicked()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_deletePosePushButton_clicked" << std::endl;
+#endif
+
     _ui->modelView->delPose();
 }
 
@@ -186,6 +166,10 @@ void MainDialog::on_deletePosePushButton_clicked()
 
 void MainDialog::on_addPosePushButton_clicked()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_addPosePushButton_clicked" << std::endl;
+#endif
+
     _ui->modelView->addPose();
 }
 
@@ -193,6 +177,10 @@ void MainDialog::on_addPosePushButton_clicked()
 
 void MainDialog::on_resizePushButton_clicked()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_resizePushButton_clicked" << std::endl;
+#endif
+
     _ui->modelView->setMinimumWidth(800);
     _ui->modelView->setMinimumHeight(450);
 }
@@ -201,6 +189,10 @@ void MainDialog::on_resizePushButton_clicked()
 
 void MainDialog::on_showCamerasCheckBox_clicked()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_showCamerasCheckBox_clicked" << std::endl;
+#endif
+
     _ui->modelView->setShowCamerasFlag(_ui->showCamerasCheckBox->isChecked());
 }
 
@@ -208,6 +200,10 @@ void MainDialog::on_showCamerasCheckBox_clicked()
 
 void MainDialog::on_backgroundWallCheckBox_clicked()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_backgroundWallCheckBox_clicked" << std::endl;
+#endif
+
     _ui->modelView->setBackgroundWallFlag(_ui->backgroundWallCheckBox->isChecked());
 }
 
@@ -215,45 +211,32 @@ void MainDialog::on_backgroundWallCheckBox_clicked()
 
 void MainDialog::on_backgroundWallSlider_sliderMoved(int position)
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_backgroundWallSlider_sliderMoved" << std::endl;
+#endif
+
     _ui->modelView->setBackgroundWallPosition((float)position/100.0);
-}
-
-//==============================================================================//
-
-void MainDialog::on_resetBusButton_clicked()
-{
-    //cam_left->resetBus();
-    //cam_right->resetBus();
-
-    // show successfull reset message:
-    std::cout << std::endl;
-    std::cout << "=============================================" << std::endl;
-    std::cout << "The firewire bus has been reset successfully!" << std::endl;
-    std::cout << "=============================================" << std::endl;
-}
-
-//==============================================================================//
-
-void MainDialog::on_readFromFilesCheckBox_clicked()
-{
-    if (_ui->readFromFilesCheckBox->isChecked())
-    {
-        _frame_index = 0;
-    }
 }
 
 //==============================================================================//
 
 void MainDialog::on_stereoScanButton_clicked()
 {
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::on_stereoScanButton_clicked" << std::endl;
+#endif
+
     // stopping ... (wait for termination of visual odometry and stereo thread)
     if (_stereo_scan)
     {
         // set button text
-        _ui->stereoScanButton->setText("Scan!");
+        _ui->stereoScanButton->setText("Scan");
 
         // stop stereo scanning
         _stereo_scan = false;
+
+        // reset the frame index.
+        _frame_index = 0;
 
         // terminate all processes
         _visualOdomThread->terminate();
@@ -266,7 +249,7 @@ void MainDialog::on_stereoScanButton_clicked()
     else
     {
         // set button text
-        _ui->stereoScanButton->setText("Stop!");
+        _ui->stereoScanButton->setText("Stop");
 
         // reset everything
         _visualOdomThread->resetHomographyTotal();
@@ -275,24 +258,15 @@ void MainDialog::on_stereoScanButton_clicked()
         _ui->modelView->clearAll();
         _stereo_thread->clearReconstruction();
 
-        // create output dir
-        if (_ui->saveToFilesCheckBox->isChecked())
-        {
-            _output_dir = createNewOutputDirectory();
-        }
-
         // start reading from files
-        if (_ui->readFromFilesCheckBox->isChecked())
+        if (_read_thread->isRunning())
         {
-            if (_read_thread->isRunning())
-            {
-                _read_thread->terminate();
-            }
-            QString input_dir = QFileDialog::getExistingDirectory (this,tr("Open Directory"),_settings->value("input_dir_name","/home/geiger").toString(),QFileDialog::ShowDirsOnly);
-            _settings->setValue("input_dir_name",input_dir);
-            _read_thread->setInputDir(input_dir);
-            _read_thread->start();
+            _read_thread->terminate();
         }
+        QString input_dir = QFileDialog::getExistingDirectory (this,tr("Open Directory"),_settings->value("input_dir_name","/").toString(),QFileDialog::ShowDirsOnly);
+        _settings->setValue("input_dir_name",input_dir);
+        _read_thread->setInputDir(input_dir);
+        _read_thread->start();
 
         // start stereo scanning
         _stereo_scan = true;
@@ -303,32 +277,9 @@ void MainDialog::on_stereoScanButton_clicked()
 
 void MainDialog::on_exitButton_clicked()
 {
+    std::cout << "MainDialog::on_exitButton_clicked()" << std::endl;
+
     exit(0);
-}
-
-//==============================================================================//
-
-void MainDialog::on_stopCapturingButton_clicked()
-{
-    //cam_left->stopRecording();
-    //cam_right->stopRecording();
-    _ui->captureFromFirewireButton->setEnabled(true);
-    _ui->stopCapturingButton->setEnabled(false);
-}
-
-//==============================================================================//
-
-void MainDialog::on_captureFromFirewireButton_clicked()
-{
-    /*
-    SelectCamerasDialog dlg(cam_left,cam_right,_ui->shutterSpinBox->value(),_calib);
-    dlg.exec();
-    if (cam_left->isRunning()||cam_right->isRunning())
-    {
-        _ui->captureFromFirewireButton->setEnabled(false);
-        _ui->stopCapturingButton->setEnabled(true);
-    }
-    */
 }
 
 //==============================================================================//
@@ -342,25 +293,6 @@ void MainDialog::newStereoImageArrived()
     // get stereo image deepcopy
     StereoImage::simage simg(*_stereo_image->getStereoImage());
     _stereo_image->pickedUp();
-
-    // save images
-    if (_stereo_scan && (_ui->saveToFilesCheckBox->isChecked()))
-    {
-        if (_frame_index!=0)
-        {
-            std::cout << _stereo_image->timeDiff(simg.time,_last_frame_time) << std::endl;
-        }
-        _last_frame_time = simg.time;
-        SaveStereoImageThread* save_thread = new SaveStereoImageThread(simg,_output_dir,_frame_index);
-        save_thread->start();
-        _save_stereo_threads.push_back(save_thread);
-
-        // stop capturing if we requested only a single frame!
-        if (_save_single_frame)
-        {
-            on_stereoScanButton_clicked();
-        }
-    }
 
     // check if any of the save threads have finished and must be deleted
     std::vector<SaveStereoImageThread*> running_save_stereo_threads;
@@ -392,17 +324,10 @@ void MainDialog::newStereoImageArrived()
         {
             QPalette p(palette());
 
-            if (_ui->saveToFilesCheckBox->isChecked())
-            {
-                p.setColor(QPalette::Background, Qt::red);
-            }
-            else
-            {
-                p.setColor(QPalette::Background, Qt::green);
-            }
+            p.setColor(QPalette::Background, Qt::green);
 
             setPalette(p);
-            _visualOdomThread->pushBack(simg,_ui->recordRawOdometryCheckBox->isChecked());
+            _visualOdomThread->pushBack(simg, false); // TODO: let the user decide to record the raw odom or not.
             _visualOdomThread->start();
         }
     }
@@ -410,9 +335,9 @@ void MainDialog::newStereoImageArrived()
     else if (_ui->tabWidget->currentIndex()==1)
     {
         _ui->elasImageView->setImage(simg.I1,simg.width,simg.height);
-        if (_stereo_scan && !_stereo_thread->isRunning() && !_ui->saveToFilesCheckBox->isChecked())
+        if (_stereo_scan && !_stereo_thread->isRunning())
         {
-            _stereo_thread->pushBack(simg,_ui->subsamplingCheckBox->isChecked());
+            _stereo_thread->pushBack(simg, _ui->subsamplingCheckBox->isChecked());
             _stereo_thread->start();
         }
     }
@@ -461,9 +386,9 @@ void MainDialog::newHomographyArrived()
     _ui->rightImageView->setMatches(_visualOdomThread->getMatches(),_visualOdomThread->getInliers(),false);
 
     // start dense stereo matching if idle
-    if (_stereo_scan && !_stereo_thread->isRunning() && !_ui->saveToFilesCheckBox->isChecked())
+    if (_stereo_scan && !_stereo_thread->isRunning())
     {
-        _stereo_thread->pushBack(simg,H_total,_gain_total);
+        _stereo_thread->pushBack(simg, H_total, _gain_total);
         _stereo_thread->start();
         _gain_total = 1;
         //_ui->modelView->addCamera(H_total,0.08,true);
@@ -514,17 +439,21 @@ void MainDialog::newDisparityMapArrived()
 
 void MainDialog::onNewCalibrationData()
 {
-    std::cout << "on new _calibration data";
-    std::cout << std::endl;
+#if MAIN_DIALOG_DEBUG
+    std::cout << "MainDialog::onNewCalibrationData" << std::endl;
+#endif
     _calib->pickedUp();
+
+#if MAIN_DIALOG_DEBUG
     _calib->showCalibrationParameters();
+#endif
 
     if( _visualOdomThread->isRunning() )
     {
         _visualOdomThread->quit();
         while( _visualOdomThread->isRunning() );
     }
-    //_visualOdomThread->disconnect();
+
     QObject::disconnect(_visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
     delete _visualOdomThread;
     _visualOdomThread = 0;
@@ -534,20 +463,15 @@ void MainDialog::onNewCalibrationData()
         _stereo_thread->quit();
         while( _stereo_thread->isRunning() );
     }
-    //_stereo_thread->disconnect();
+
     QObject::disconnect(_stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
     delete _stereo_thread;
     _stereo_thread = 0;
 
-    // Generate the new threads which need the _calibration data.
-    //cam_left      = new FrameCaptureThread(_stereo_image,_calib,true,_capture_mutex);
-    //cam_right     = new FrameCaptureThread(_stereo_image,_calib,false,_capture_mutex);
     _visualOdomThread     = new VisualOdometryThread(_calib);
     _stereo_thread = new StereoThread(_calib,_ui->modelView);
 
     // connect to the objects for communication.    
-    //QObject::connect(_stereo_image,SIGNAL(newStereoImageArrived()),this,SLOT(newStereoImageArrived()));
     QObject::connect(_visualOdomThread,SIGNAL(newHomographyArrived()),this,SLOT(newHomographyArrived()));
     QObject::connect(_stereo_thread,SIGNAL(newDisparityMapArrived()),this,SLOT(newDisparityMapArrived()));
-    //QObject::connect(_calib, SIGNAL( newCalibrationData() ), this, SLOT( onNewCalibrationData() ) );
 }

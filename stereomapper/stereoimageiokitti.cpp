@@ -27,6 +27,11 @@ bool StereoImageIOKITTI::setUpDataPath(const std::string images_directory[],
     bool is_open = true;
     for(int i = 0; i < IMAGE_INPUT_SOURCE_COUNT; ++i)
     {
+        if(_time_stamp_stream[i].is_open())
+        {
+            _time_stamp_stream[i].close();
+        }
+
         _time_stamp_stream[i].open(images_timestamp[i]);
         is_open = (is_open && _time_stamp_stream[i].is_open());
 
@@ -60,6 +65,7 @@ bool StereoImageIOKITTI::setUpDataPath(const std::string images_directory[],
         return false;
     }
     _images_number = line_count_in_each_source[0];
+    _image_index = -1;
 
     for(int i = 0; i < IMAGE_INPUT_SOURCE_COUNT; ++i)
     {

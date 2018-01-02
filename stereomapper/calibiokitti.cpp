@@ -1,6 +1,8 @@
 #include "calibiokitti.h"
-
 #include <sstream>
+
+#define CALIB_IO_KITTI_DEBUG 0
+
 using namespace std;
 
 CalibIOKITTI::CalibIOKITTI( QObject* a_parent )

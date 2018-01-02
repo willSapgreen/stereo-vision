@@ -1,7 +1,7 @@
 #include "readfromfilesthread.h"
 #include "QFileDialog"
 
-#define READ_FROM_FILES_THREAD_DEBUG 1
+#define READ_FROM_FILES_THREAD_DEBUG 0
 
 ReadFromFilesThread::ReadFromFilesThread( StereoImage *stereo_image, CalibIOKITTI *_calib,
                                           StereoImageIOKITTI* stereo_image_io, OxTSIOKITTI* oxts_io, QObject *parent)
@@ -39,9 +39,6 @@ void ReadFromFilesThread::run()
                                    (input_dir_str + DEFAULT_IMU_TO_VELO_TXT_PATH),
                                    (input_dir_str + DEFAULT_VELO_TO_CAM_TXT_PATH)))
     {
-        // Show calibration parameters.
-        _calib->showCalibrationParameters();
-
         std::string image_timestamp_files[IMAGE_INPUT_SOURCE_COUNT];
         std::string image_directories[IMAGE_INPUT_SOURCE_COUNT];
         image_timestamp_files[IMAGE_INPUT_SOURCE_GRAY_LEFT] = input_dir_str + DEFAULT_IMAGE00_TIMESTAMP_TXT_PATH;

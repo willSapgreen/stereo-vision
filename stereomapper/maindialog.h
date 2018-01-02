@@ -32,13 +32,10 @@ public:
 
 private:
 
-    std::string          createNewOutputDirectory();
     void                 keyPressEvent(QKeyEvent * event);
 
     Ui::MainDialog*       _ui;
     StereoImage*          _stereo_image;
-    //FrameCaptureThread   *cam_left;
-    //FrameCaptureThread   *cam_right;
     VisualOdometryThread* _visualOdomThread;
     StereoThread*         _stereo_thread;
     ReadFromFilesThread*  _read_thread;
@@ -65,7 +62,6 @@ private:
 
 private slots:
 
-    void on_shutterSpinBox_valueChanged(int );
     void on_resizeSmallPushButton_clicked();
     void on_whiteCheckBox_clicked();
     void on_gridCheckBox_clicked();
@@ -77,21 +73,9 @@ private slots:
     void on_showCamerasCheckBox_clicked();
     void on_backgroundWallCheckBox_clicked();
     void on_backgroundWallSlider_sliderMoved(int position);
-    void on_resetBusButton_clicked();
-    void on_readFromFilesCheckBox_clicked();
     void on_stereoScanButton_clicked();
     void on_exitButton_clicked();
-    void on_stopCapturingButton_clicked();
 
-    /*
-     * Handle "Start Grabbing" button click.
-     */
-    void on_captureFromFirewireButton_clicked();
-
-    /*
-     * Handle when the new StereoImage received.
-     *
-     */
     void newStereoImageArrived();
     void newHomographyArrived();
     void newDisparityMapArrived();
