@@ -125,10 +125,10 @@ HEADERS  += maindialog.h \
     oxtsiokitti.h
       ../dirent/include/dirent.h
 
-FORMS    += maindialog.ui \
-    selectcamerasdialog.ui
+FORMS    += maindialog.ui #\
+    #selectcamerasdialog.ui
 
-LIBS += -ldc1394 -lGLU -L/usr/local/lib \
+LIBS += -lGLU -L/usr/local/lib \
                  -lopencv_core\
                  -lopencv_highgui\
                  -lopencv_imgproc\

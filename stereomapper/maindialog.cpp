@@ -3,7 +3,6 @@
 
 #include "maindialog.h"
 #include "ui_maindialog.h"
-#include "selectcamerasdialog.h"
 #include "../libviso2/src/timer.h"
 
 #define MAIN_DIALOG_DEBUG 0

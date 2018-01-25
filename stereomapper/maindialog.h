@@ -7,7 +7,6 @@
 #include <sys/time.h>
 #include <opencv/highgui.h>
 
-#include "framecapturethread.h"
 #include "visualodometrythread.h"
 #include "stereothread.h"
 #include "stereoimage.h"
