@@ -441,10 +441,10 @@ void StereoThread::addDisparityMapToReconstruction()
 void StereoThread::getIntrinsics()
 {
     // intrinsics
-    _f    = _calib->_cam_to_cam_P_rect[0].at<float>(0,0);
-    _cu   = _calib->_cam_to_cam_P_rect[0].at<float>(0,2);
-    _cv   = _calib->_cam_to_cam_P_rect[0].at<float>(1,2);
-    _base = -(_calib->_cam_to_cam_P_rect[1].at<float>(0,3))/(_calib->_cam_to_cam_P_rect[1].at<float>(0,0));
+    _f    = _calib->_cam_to_cam_P_rect[0]._val[0][0];
+    _cu   = _calib->_cam_to_cam_P_rect[0]._val[0][2];
+    _cv   = _calib->_cam_to_cam_P_rect[0]._val[1][2];
+    _base = -(_calib->_cam_to_cam_P_rect[1]._val[0][3]) / (_calib->_cam_to_cam_P_rect[1]._val[0][0]);
 
     // calibration matrix
     _K = Matrix(3,3);

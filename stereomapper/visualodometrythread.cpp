@@ -19,9 +19,9 @@ VisualOdometryThread::VisualOdometryThread(CalibIOKITTI *calib,QObject *parent)
     VisualOdometryStereo::parameters visualOdomStereoParam;
     if (_calib->calibrated())
     {
-        visualOdomStereoParam.calib.f = _calib->_cam_to_cam_P_rect[0].at<float>(0,0); // x focal length in pixels.
-        visualOdomStereoParam.calib.cu = _calib->_cam_to_cam_P_rect[0].at<float>(0,2); // principal point (u-coordinate) in pixels
-        visualOdomStereoParam.calib.cv = _calib->_cam_to_cam_P_rect[0].at<float>(1,2); // principal point (v-coordinate) in pixels
+        visualOdomStereoParam.calib.f = _calib->_cam_to_cam_P_rect[0]._val[0][0]; // x focal length in pixels.
+        visualOdomStereoParam.calib.cu = _calib->_cam_to_cam_P_rect[0]._val[0][2]; // principal point (u-coordinate) in pixels
+        visualOdomStereoParam.calib.cv = _calib->_cam_to_cam_P_rect[0]._val[1][2]; // principal point (v-coordinate) in pixels
 
         /*
         Projection matrix is defined as K[I|t]. 3x4
@@ -43,7 +43,7 @@ VisualOdometryThread::VisualOdometryThread(CalibIOKITTI *calib,QObject *parent)
         so m_cam_to_cam_P_rect[1].at<float>(0,3) is fx*t1
         To get the t1( the distance between two cameras), t1 = (fx*t1/fx)
         */
-        visualOdomStereoParam.base  = -(_calib->_cam_to_cam_P_rect[1].at<float>(0,3))/(_calib->_cam_to_cam_P_rect[1].at<float>(0,0)); // baseline in meters
+        visualOdomStereoParam.base  = -(_calib->_cam_to_cam_P_rect[1]._val[0][3]) / (_calib->_cam_to_cam_P_rect[1]._val[0][0]); // baseline in meters
     }
 
     _visualOdomStereo      = new VisualOdometryStereo( visualOdomStereoParam );
@@ -117,10 +117,15 @@ void VisualOdometryThread::run()
 
         if (H_inv.solve(H))
         {
-            _H_total = _H_total*H_inv;
+            // Why not _H_total = H_inv * _H_total
+            // Because
+            // 1. we apply the transformation on the local coordinate.
+            // 2. OpenGL uses post-multiplication order for a series of transformation operations.
+            // Detail: http://web.cse.ohio-state.edu/~wang.3602/courses/cse5542-2013-spring/6-Transformation_II.pdf
+            _H_total = _H_total * H_inv;
             _picked = false;
-            emit newHomographyArrived();
-            while (!_picked) usleep(1000);
-        }
+        }   
     }
+    emit newHomographyArrived();
+    while (!_picked) usleep(1000);
 }

@@ -15,6 +15,7 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <QObject>
+#include "../libviso2/src/matrix.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -70,6 +71,12 @@ public:
      */
     void pickedUp() { _picked = true; }
 
+
+    /*
+     * Show content in Matrix with the name.
+     */
+    static void showMatrix(const Matrix& matrix, const std::string& desc="");
+
     /*
      * In KITTI, there are four cameras.
      * In the following array:
@@ -105,7 +112,7 @@ public:
      *
      * # Translation matrix from camera 0 to camera 0.
      * # Reference: http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#stereorectify
-     * # Purpose: present the translation relationship between two cameras( observed at camera 0 )
+     * # Purpose: present the translatioopencv integrate two different sizen relationship between two cameras( observed at camera 0 )
      * T_00: 2.573699e-16 -1.059758e-16 1.614870e-16
      *
      * # Image size after rectification.
@@ -124,27 +131,26 @@ public:
      * P_rect_00: 7.215377e+02 0.000000e+00 6.095593e+02 0.000000e+00 0.000000e+00 7.215377e+02 1.728540e+02 0.000000e+00 0.000000e+00 0.000000e+00 1.000000e+00 0.000000e+00
      */
 
-    // TODO: replace cv::Mat with libviso2/matrix.
     std::vector<std::string> _cam_to_cam_calib_time;
-    cv::Mat _cam_to_cam_corner_dist;
-    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_S; // original image size. 1x2
-    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_K; // calibration matrices( unrectified ). 3x3
-    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_D; // distrotion matrices ( unrectified ). 1x5
-    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_R; // rotation matrices from camera 0 to camera i. 3x3
-    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_T; // translation matrices from camera 0 to camera i. 1x3
-    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_S_rect; // image size after rectification. 1x2
-    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_R_rect; // rectifying rotation matrix. 3x3
-    std::array< cv::Mat, KITTI_CAMERA_NUM> _cam_to_cam_P_rect; // projection matrix after rectification. 3x4
+    Matrix _cam_to_cam_corner_dist;
+    std::array< Matrix, KITTI_CAMERA_NUM> _cam_to_cam_S; // original image size. 1x2
+    std::array< Matrix, KITTI_CAMERA_NUM> _cam_to_cam_K; // calibration matrices( unrectified ). 3x3
+    std::array< Matrix, KITTI_CAMERA_NUM> _cam_to_cam_D; // distrotion matrices ( unrectified ). 1x5
+    std::array< Matrix, KITTI_CAMERA_NUM> _cam_to_cam_R; // rotation matrices from camera 0 to camera i. 3x3
+    std::array< Matrix, KITTI_CAMERA_NUM> _cam_to_cam_T; // translation matrices from camera 0 to camera i. 1x3
+    std::array< Matrix, KITTI_CAMERA_NUM> _cam_to_cam_S_rect; // image size after rectification. 1x2
+    std::array< Matrix, KITTI_CAMERA_NUM> _cam_to_cam_R_rect; // rectifying rotation matrix. 3x3
+    std::array< Matrix, KITTI_CAMERA_NUM> _cam_to_cam_P_rect; // projection matrix after rectification. 3x4
 
     std::vector<std::string> _velo_to_cam_calib_time;
-    cv::Mat _velo_to_cam_R;
-    cv::Mat _velo_to_cam_T;
-    cv::Mat _velo_to_cam_delta_f;
-    cv::Mat _velo_to_cam_delta_c;
+    Matrix _velo_to_cam_R; // 3x3
+    Matrix _velo_to_cam_T; // 1x3
+    Matrix _velo_to_cam_delta_f;
+    Matrix _velo_to_cam_delta_c;
 
     std::vector<std::string> _imu_to_velo_calib_time;
-    cv::Mat _imu_to_velo_R;
-    cv::Mat _imu_to_velo_T;
+    Matrix _imu_to_velo_R; // 3x3
+    Matrix _imu_to_velo_T; // 1x3
 
     bool _picked;
     bool _calibrated;
@@ -157,11 +163,6 @@ private:
     std::vector<std::string> splitLine(const std::string& a_line);
 
     /*
-     * Show cv::Mat content with the name.
-     */
-    void showCvMat(const cv::Mat& a_m, const std::string& a_desc="") const;
-
-    /*
      * Read the string in the calibration file.
      */
     bool readCalibFileString(FILE* a_calib_file, const char* a_string_name, std::vector<std::string>& a_calib_string);
@@ -169,7 +170,8 @@ private:
     /*
      * Read the matrix setting in the calibration file.
      */
-    bool readCalibFileMatrix(FILE* a_calib_file, const char* a_matrix_name, uint32_t a_m, uint32_t a_n, cv::Mat& a_Mat);
+    bool readCalibFileMatrix(FILE* a_calib_file, const char* a_matrix_name,
+                             uint32_t a_m, uint32_t a_n, Matrix& a_Matrix);
 
     /*
      * Read calib_cam_to_cam.txt.

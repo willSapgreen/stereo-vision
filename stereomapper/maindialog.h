@@ -9,11 +9,15 @@
 
 #include "visualodometrythread.h"
 #include "stereothread.h"
-#include "stereoimage.h"
 #include "calibiokitti.h"
 #include "savestereoimagethread.h"
 #include "readfromfilesthread.h"
 #include "visualizethread.h"
+#include "gpxgenerator.h"
+#include "stereoimage.h"
+#include "gpsinertialdata.h"
+
+#include "headingfilter.h"
 
 namespace Ui
 {
@@ -35,7 +39,9 @@ private:
 
     Ui::MainDialog*       _ui;
     StereoImage*          _stereo_image;
-    VisualOdometryThread* _visualOdomThread;
+    GPSInertialData*      _gps_inertial_data;
+    VisualOdometryThread* _visual_odom_thread;
+    HeadingFilter*        _heading_filter;
     StereoThread*         _stereo_thread;
     ReadFromFilesThread*  _read_thread;
     VisualizeThread*      _visualize_thread;
@@ -57,7 +63,16 @@ private:
     std::string           _output_dir;
     std::vector<SaveStereoImageThread*> _save_stereo_threads;
     StereoImageIOKITTI* _stereo_image_io;
-    OxTSIOKITTI* _oxts_io;
+    GPSInertialDataIOKITTI* _gps_inertial_data_io;
+    GpxGenerator* _ground_truth_gpx_generator;
+    GpxGenerator* _visual_odom_gpx_generator;
+    Matrix _cam_to_imu_trans;
+    bool _is_cam_to_imu_transformation_ready;
+    Matrix _pseudo_first_gps_inertial_pos; // coordinate: spherical mercator EPSG:3785 Google Mercator WGS 84-Pseudo-Mercator.
+    bool _is_first_gps_inertial_data_ready;
+
+    // TODO: Move to another file later
+    void calculateRollPitchYawFromTransformation( const Matrix& transformation, double& roll, double& pitch, double& yaw ) const;
 
 private slots:
 
@@ -75,14 +90,17 @@ private slots:
     void on_stereoScanButton_clicked();
     void on_exitButton_clicked();
 
-    void newStereoImageArrived();
-    void newHomographyArrived();
-    void newDisparityMapArrived();
+    void onNewStereoImageArrived();
 
     /*
-     * Handle when the new calibration setting is available.
-    */
+     * Handle the homography transformation from visual odom processing.
+     */
+    void onNewHomographyArrived();
+
+    void onNewDisparityMapArrived();
+    void onNewGPSInertialDataArrived();
     void onNewCalibrationData();
+    void onPlaybackDataFinished();
 
 };
 

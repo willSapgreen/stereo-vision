@@ -3,13 +3,14 @@
 
 #define READ_FROM_FILES_THREAD_DEBUG 0
 
-ReadFromFilesThread::ReadFromFilesThread( StereoImage *stereo_image, CalibIOKITTI *_calib,
-                                          StereoImageIOKITTI* stereo_image_io, OxTSIOKITTI* oxts_io, QObject *parent)
+ReadFromFilesThread::ReadFromFilesThread(StereoImage *stereo_image, GPSInertialData *gps_inertial_data, CalibIOKITTI *_calib,
+                                          StereoImageIOKITTI* stereo_image_io, GPSInertialDataIOKITTI* oxts_io, QObject *parent)
     : QThread(parent)
     , _calib(_calib)
     , _stereo_image_io( stereo_image_io )
-    , _oxts_io(oxts_io)
+    , _gps_inertial_data_io(oxts_io)
     , _stereo_image(stereo_image)
+    , _gps_inertial_data(gps_inertial_data)
 {
 }
 
@@ -47,21 +48,37 @@ void ReadFromFilesThread::run()
         image_directories[IMAGE_INPUT_SOURCE_GRAY_RIGHT] = input_dir_str + DEFAULT_IMAGE01_DATA_PATH;
 
         bool process_succeed = _stereo_image_io->setUpDataPath(image_directories, image_timestamp_files) &&
-                               _oxts_io->fetchGrayOxTSData(input_dir_str + DEFAULT_OXTS_DATA_PATH,
+                               _gps_inertial_data_io->setUpDataPath(input_dir_str + DEFAULT_OXTS_DATA_PATH,
                                                            input_dir_str + DEFAULT_OXTS_TIMESTAMP_TXT_PATH);
-        if (!process_succeed)
+        if ((!process_succeed) ||
+            (_stereo_image_io->getImagesNumber() != _gps_inertial_data_io->getOxTSDataSize()))
         {
+            std::cout << "ERROR: Cannot fetch data or image/oxts data sizes are different\n";
             return;
         }
 
+        int32_t data_size = _gps_inertial_data_io->getOxTSDataSize();
+
         // start output loop
         float fps = 10;
+        //bool getOxTSData(int nth, OxSTData& oxts_data);
+        OxSTData oxts_data;
         ImageDataCV image_set[IMAGE_INPUT_SOURCE_COUNT];
         unsigned char* left_img_data;
         unsigned char* right_img_data;
-        for (int32_t i=0; i<(int32_t)_stereo_image_io->getImagesNumber(); ++i)
+
+        for (int32_t i=0; i < data_size; ++i)
         {
-            _stereo_image_io->getNextImageDataSet(image_set);
+            if(!(_stereo_image_io->getNextImageDataSet(image_set) &&
+                 _gps_inertial_data_io->getNextGPSInertialData(oxts_data)))
+            {
+                continue;
+            }
+
+            // Convert OxST data to GPSInertialData.
+            GPSInertialDataFormat gi_data;
+            oxts_data.toGPSInertialDataFormat(gi_data);
+            _gps_inertial_data->setData(gi_data);
 
             // Get the raw data.
             cvGetRawData(image_set[IMAGE_INPUT_SOURCE_GRAY_LEFT]._image, &left_img_data);
@@ -85,7 +102,9 @@ void ReadFromFilesThread::run()
             }
 
             usleep(1e6/fps);
-        }
+        } // for (int32_t i=0; i < data_size; ++i)
+
+        emit playbackDataFinished();
     }
     else
     {

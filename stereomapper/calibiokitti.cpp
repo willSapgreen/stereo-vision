@@ -55,17 +55,17 @@ void CalibIOKITTI::showCalibrationParameters() const
         std::cout << _cam_to_cam_calib_time[i] << " ";
     }
     std::cout << std::endl << std::endl;
-    showCvMat(_cam_to_cam_corner_dist, "corner_dist");
+    showMatrix(_cam_to_cam_corner_dist, "corner_dist");
     for (int i = 0; i < KITTI_CAMERA_NUM; ++i)
     {
-        showCvMat(_cam_to_cam_S[i],"S0"+std::to_string(i));
-        showCvMat(_cam_to_cam_K[i],"K0"+std::to_string(i));
-        showCvMat(_cam_to_cam_D[i],"D0"+std::to_string(i));
-        showCvMat(_cam_to_cam_R[i],"R0"+std::to_string(i));
-        showCvMat(_cam_to_cam_T[i],"T0"+std::to_string(i));
-        showCvMat(_cam_to_cam_S_rect[i],"S_rect0"+std::to_string(i));
-        showCvMat(_cam_to_cam_R_rect[i],"R_rect0"+std::to_string(i));
-        showCvMat(_cam_to_cam_P_rect[i],"P_rect0"+std::to_string(i));
+        showMatrix(_cam_to_cam_S[i],"S0"+std::to_string(i));
+        showMatrix(_cam_to_cam_K[i],"K0"+std::to_string(i));
+        showMatrix(_cam_to_cam_D[i],"D0"+std::to_string(i));
+        showMatrix(_cam_to_cam_R[i],"R0"+std::to_string(i));
+        showMatrix(_cam_to_cam_T[i],"T0"+std::to_string(i));
+        showMatrix(_cam_to_cam_S_rect[i],"S_rect0"+std::to_string(i));
+        showMatrix(_cam_to_cam_R_rect[i],"R_rect0"+std::to_string(i));
+        showMatrix(_cam_to_cam_P_rect[i],"P_rect0"+std::to_string(i));
     }
 
     std::cout << std::endl << "========================" << std::endl;
@@ -77,10 +77,10 @@ void CalibIOKITTI::showCalibrationParameters() const
         std::cout << _velo_to_cam_calib_time[i] << " ";
     }
     std::cout << std::endl << std::endl;
-    showCvMat(_velo_to_cam_R,"R");
-    showCvMat(_velo_to_cam_T,"T");
-    showCvMat(_velo_to_cam_delta_f,"delta_f");
-    showCvMat(_velo_to_cam_delta_c,"delta_c");
+    showMatrix(_velo_to_cam_R,"R");
+    showMatrix(_velo_to_cam_T,"T");
+    showMatrix(_velo_to_cam_delta_f,"delta_f");
+    showMatrix(_velo_to_cam_delta_c,"delta_c");
 
     std::cout << std::endl << "========================" << std::endl;
     std::cout << "IMU-To-Cam calibration parameters:";
@@ -91,8 +91,8 @@ void CalibIOKITTI::showCalibrationParameters() const
         std::cout << _imu_to_velo_calib_time[i] << " ";
     }
     std::cout << std::endl << std::endl;
-    showCvMat(_imu_to_velo_R,"R");
-    showCvMat(_imu_to_velo_T,"T");
+    showMatrix(_imu_to_velo_R,"R");
+    showMatrix(_imu_to_velo_T,"T");
 }
 
 //==============================================================================//
@@ -100,28 +100,8 @@ void CalibIOKITTI::showCalibrationParameters() const
 void CalibIOKITTI::clear()
 {
     _cam_to_cam_calib_time.clear();
-     _cam_to_cam_corner_dist.release();
-    for (int i = 0; i < KITTI_CAMERA_NUM; ++i)
-    {
-        _cam_to_cam_S[i].release();
-        _cam_to_cam_K[i].release();
-        _cam_to_cam_D[i].release();
-        _cam_to_cam_R[i].release();
-        _cam_to_cam_T[i].release();
-        _cam_to_cam_S_rect[i].release();
-        _cam_to_cam_R_rect[i].release();
-        _cam_to_cam_P_rect[i].release();
-    }
-
     _velo_to_cam_calib_time.clear();
-    _velo_to_cam_R.release();
-    _velo_to_cam_T.release();
-    _velo_to_cam_delta_f.release();
-    _velo_to_cam_delta_c.release();
-
     _imu_to_velo_calib_time.clear();
-    _imu_to_velo_R.release();
-    _imu_to_velo_T.release();
 
     _picked = false;
     _calibrated = false;
@@ -155,34 +135,6 @@ vector<string> CalibIOKITTI::splitLine(const std::string& a_line)
         }
     } while (a_line[k2]!= '\0' && a_line[k2]!='\n' && k2<a_line.size());
     return line_vector;
-}
-
-//==============================================================================//
-
-void CalibIOKITTI::showCvMat(const cv::Mat& a_m, const std::string& a_desc) const
-{
-    if (a_desc.compare(""))
-    {
-        std::cout << "Matrix \"" << a_desc << "\":" << std::endl;
-    }
-
-    if (!a_m.empty())
-    {
-        cv::Size s = a_m.size();
-        for (int32_t i=0; i<s.height; ++i)
-        {
-            for (int32_t j=0; j<s.width; ++j)
-            {
-                std::cout << std::setw(10) << a_m.at<float>(i,j) << " ";
-            }
-            std::cout << std::endl;
-        }
-    }
-    else
-    {
-        std::cout << " --- undefined --- " << std::endl;
-    }
-    std::cout << std::endl;
 }
 
 //==============================================================================//
@@ -223,7 +175,7 @@ bool CalibIOKITTI::readCalibFileString(FILE* a_calib_file,
 //==============================================================================//
 
 bool CalibIOKITTI::readCalibFileMatrix(FILE* a_calib_file, const char* a_matrix_name,
-                                       uint32_t a_m, uint32_t a_n, cv::Mat& a_Mat)
+                                       uint32_t a_m, uint32_t a_n, Matrix& a_Matrix)
 {
     // go to beginning of file
     rewind(a_calib_file);
@@ -249,23 +201,23 @@ bool CalibIOKITTI::readCalibFileMatrix(FILE* a_calib_file, const char* a_matrix_
             }
 
             // create and fill opencv matrix
-            a_Mat.create(a_m, a_n, CV_32FC1);
+            //matrix.create(a_m, a_n, CV_32FC1);
+            Matrix matrix(a_m, a_n);
             float val;
-
             uint32_t k=1;
-            for (uint32_t i = 0; i < a_m; ++i)
+            for(uint32_t r = 0; r < a_m; ++r)
             {
-                for (uint32_t j = 0; j < a_n; ++j)
+                for(uint32_t c = 0; c < a_n; ++c)
                 {
                     stringstream sst;
-                    sst<<line_vector[k++];
-                    sst>>val;
-                    a_Mat.at<float>( i,j ) = val;
+                    sst << line_vector[k++];
+                    sst >> val;
+                    matrix._val[r][c] = val;
                 }
             }
+            a_Matrix = matrix;
         }
     }
-
     return true;
 }
 
@@ -353,4 +305,24 @@ bool CalibIOKITTI::readImuToVeloCalibFromFile(const std::string& a_calib_file_na
     fclose (calib_file);
 
     return true;
+}
+
+//==============================================================================//
+
+void CalibIOKITTI::showMatrix(const Matrix& matrix, const std::string& desc)
+{
+    if(desc.compare(""))
+    {
+        std::cout << "Matrix \"" << desc << "\":" << std::endl;
+    }
+
+    for(int32_t r = 0; r < matrix._m; ++r)
+    {
+        for(int32_t c = 0; c < matrix._n; ++c)
+        {
+            std::cout << std::setw(10) << matrix._val[r][c] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
 }

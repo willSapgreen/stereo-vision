@@ -12,7 +12,8 @@
 #include "calibiokitti.h"
 #include "stereoimage.h"
 #include "stereoimageiokitti.h"
-#include "oxtsiokitti.h"
+#include "gpsinertialdata.h"
+#include "gpsinertialdataiokitti.h"
 
 /**
     Read the camera calibration file and the stereo RECTIFIED images.
@@ -35,11 +36,11 @@ class ReadFromFilesThread : public QThread
 
 public:
 
-    ReadFromFilesThread(StereoImage *stereo_image, CalibIOKITTI *calib,
-                        StereoImageIOKITTI* stereo_image_io, OxTSIOKITTI* oxts_io,
+    ReadFromFilesThread(StereoImage *stereo_image, GPSInertialData *gps_inertial_data, CalibIOKITTI *calib,
+                        StereoImageIOKITTI* stereo_image_io, GPSInertialDataIOKITTI* oxts_io,
                         QObject *parent = 0);
     ~ReadFromFilesThread();
-    inline void setInputDir(QString input_dir) {_input_dir = input_dir;}
+    inline void setInputDir(QString input_dir) { _input_dir = input_dir; }
 
 protected:
 
@@ -49,13 +50,14 @@ private:
 
     CalibIOKITTI   *_calib;
     StereoImageIOKITTI *_stereo_image_io;
-    OxTSIOKITTI *_oxts_io;
+    GPSInertialDataIOKITTI *_gps_inertial_data_io;
     StereoImage     *_stereo_image;
+    GPSInertialData *_gps_inertial_data;
     QString _input_dir;
 
 signals:
 
-public slots:
+    void playbackDataFinished();
 
 };
 

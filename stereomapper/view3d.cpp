@@ -3,7 +3,7 @@
 #include <math.h>
 #include "../libviso2/src/matrix.h"
 
-#define VIDW_3D_DEBUG 0
+#define DEBUG_SHOW_HOMOGRAPHY_C 0
 
 using namespace std;
 
@@ -127,7 +127,7 @@ void View3D::wheelEvent(QWheelEvent *event)
 void View3D::addCamera(Matrix H_total, float s, bool keyframe)
 {
     // create list with points for this camera
-    Matrix C(4,10);
+    Matrix C(4,10); // the visualized red rectangle with the cross has 10 points.
     C._val[0][0] = -0.5*s; C._val[1][0] = -0.5*s; C._val[2][0] = +1.0*s;
     C._val[0][1] = +0.5*s; C._val[1][1] = -0.5*s; C._val[2][1] = +1.0*s;
     C._val[0][2] = +0.5*s; C._val[1][2] = +0.5*s; C._val[2][2] = +1.0*s;
@@ -138,6 +138,7 @@ void View3D::addCamera(Matrix H_total, float s, bool keyframe)
     C._val[0][7] = +0.5*s; C._val[1][7] = +0.5*s; C._val[2][7] = +1.0*s;
     C._val[0][8] =      0; C._val[1][8] =      0; C._val[2][8] =      0;
     C._val[0][9] = -0.5*s; C._val[1][9] = +0.5*s; C._val[2][9] = +1.0*s;
+
     for (int32_t i=0; i<10; i++)
     {
         C._val[3][i] = 1;
@@ -145,6 +146,12 @@ void View3D::addCamera(Matrix H_total, float s, bool keyframe)
 
     // transfer camera to reference coordinate system
     Matrix C_ref = H_total*C;
+
+ #if DEBUG_SHOW_HOMOGRAPHY_C
+    std::cout << "C\n" << C << "\n=====\n";
+    std::cout << "H_total\n" << H_total << "\n=====\n";
+    std::cout << "C_ref\n" << C_ref << "\n=====\n";
+#endif
 
     // add camera to list of cameras
     cam ccam;
@@ -381,11 +388,6 @@ void View3D::paintGL()
 void View3D::resizeGL(int width, int height)
 {
     makeCurrent();
-
-#if VIDW_3D_DEBUG
-    cout << "GL Viewport size: " << width << " x " << height << endl;
-#endif
-
     int side = qMax(width, height);
     glViewport((width-side)/2,(height-side)/2,side,side);
     glMatrixMode(GL_PROJECTION);

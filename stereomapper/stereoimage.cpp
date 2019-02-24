@@ -12,6 +12,7 @@ StereoImage::StereoImage(QObject *parent):QObject(parent)
     _img_left  = new image();
     _img_right = new image();
     _simg      = new simage();
+    _picked = false;
 }
 
 //==============================================================================//

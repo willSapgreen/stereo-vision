@@ -14,6 +14,9 @@
 #include <unistd.h>
 #endif
 
+// TODO:
+// Need mutex for read/write when being used in the multi-thread situation.
+
 class StereoImage : public QObject
 {
     Q_OBJECT

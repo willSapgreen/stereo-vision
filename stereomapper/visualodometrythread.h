@@ -26,6 +26,8 @@ public:
     void resetHomographyTotal() { _H_total.eye(); }
     void pickedUp() { _picked = true; }
 
+    // The latest( accmulated ) transformation matrix.
+    // current_transformation = previous_transformation * new_delta_transformation
     Matrix _H_total;
 
 protected:
