@@ -1,9 +1,10 @@
-#include "oxtsiokitti.h"
+#include "gpsinertialdataiokitti.h"
 
 #define OXTSIO_KITTI_DEBUG 0
 
-OxTSIOKITTI::OxTSIOKITTI()
+GPSInertialDataIOKITTI::GPSInertialDataIOKITTI()
     : _data_size(0)
+    , _data_index(-1)
     , _oxts_data_set(nullptr)
 {
 
@@ -11,14 +12,14 @@ OxTSIOKITTI::OxTSIOKITTI()
 
 //==============================================================================//
 
-OxTSIOKITTI::~OxTSIOKITTI()
+GPSInertialDataIOKITTI::~GPSInertialDataIOKITTI()
 {
     _oxts_data_set.release();
 }
 
 //==============================================================================//
 
-bool OxTSIOKITTI::fetchGrayOxTSData(const std::string& oxts_data_directory,
+bool GPSInertialDataIOKITTI::setUpDataPath(const std::string& oxts_data_directory,
                                     const std::string& oxts_timestamp)
 {
     // Read the timestamp files.
@@ -57,8 +58,8 @@ bool OxTSIOKITTI::fetchGrayOxTSData(const std::string& oxts_data_directory,
             int second = std::stoi(lines.substr(17,2));
             int narosecond = std::stoi(lines.substr(20,9));
 
-            _oxts_data_set[count]._captured_time.tv_sec = hour * 3600 + minute * 60 + second;
-            _oxts_data_set[count]._captured_time.tv_usec = narosecond / 1000;
+            _oxts_data_set[count].saved_time.tv_sec = hour * 3600 + minute * 60 + second;
+            _oxts_data_set[count].saved_time.tv_usec = narosecond / 1000;
 
             std::ostringstream ss;
             ss << std::setw(10) << std::setfill('0') << count << ".txt";
@@ -84,7 +85,16 @@ bool OxTSIOKITTI::fetchGrayOxTSData(const std::string& oxts_data_directory,
 
 //==============================================================================//
 
-bool OxTSIOKITTI::getOxTSData(int nth, OxSTData& oxts_data)
+bool GPSInertialDataIOKITTI::getNextGPSInertialData(OxSTData& gps_inertial_data)
+{
+    _data_index++;
+
+    return getOxTSData( _data_index, gps_inertial_data );
+}
+
+//==============================================================================//
+
+bool GPSInertialDataIOKITTI::getOxTSData(int nth, OxSTData& oxts_data)
 {
     // Check if nth is valid.
     if (nth < 0 || nth >= _data_size)
@@ -99,7 +109,7 @@ bool OxTSIOKITTI::getOxTSData(int nth, OxSTData& oxts_data)
 
 //==============================================================================//
 
-bool OxTSIOKITTI::readInOxTSData(const std::string& oxts_file, OxSTData& oxta_data)
+bool GPSInertialDataIOKITTI::readInOxTSData(const std::string& oxts_file, OxSTData& oxta_data)
 {
     std::ifstream oxta_data_stream;
     oxta_data_stream.open(oxts_file);
@@ -127,36 +137,36 @@ bool OxTSIOKITTI::readInOxTSData(const std::string& oxts_file, OxSTData& oxta_da
     }
 
     int index = 0;
-    oxta_data._oxst._lat = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._lon = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._alt = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._roll = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._pitch = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._yaw = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._vn = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._ve = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._vf = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._vl = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._vu = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._ax = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._ay = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._ay = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._af = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._al = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._au = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._wx = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._wy = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._wz = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._wf = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._wl = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._wu = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._pos_accuracy = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._vel_accuracy = std::stod(tokens[index]); ++index;
-    oxta_data._oxst._navstat = std::stoi(tokens[index]); ++index;
-    oxta_data._oxst._numsats = std::stoi(tokens[index]); ++index;
-    oxta_data._oxst._posmode = std::stoi(tokens[index]); ++index;
-    oxta_data._oxst._velmode = std::stoi(tokens[index]); ++index;
-    oxta_data._oxst._orimode = std::stoi(tokens[index]); ++index;
+    oxta_data.oxst.lat = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.lon = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.alt = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.roll = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.pitch = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.yaw = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.vn = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.ve = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.vf = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.vl = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.vu = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.ax = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.ay = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.ay = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.af = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.al = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.au = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.wx = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.wy = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.wz = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.wf = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.wl = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.wu = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.pos_accuracy = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.vel_accuracy = std::stod(tokens[index]); ++index;
+    oxta_data.oxst.navstat = std::stoi(tokens[index]); ++index;
+    oxta_data.oxst.numsats = std::stoi(tokens[index]); ++index;
+    oxta_data.oxst.posmode = std::stoi(tokens[index]); ++index;
+    oxta_data.oxst.velmode = std::stoi(tokens[index]); ++index;
+    oxta_data.oxst.orimode = std::stoi(tokens[index]); ++index;
 
     oxta_data_stream.close();
     return true;
