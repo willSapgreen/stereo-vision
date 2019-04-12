@@ -65,7 +65,10 @@ SOURCES += main.cpp\
     ../gpxlib/gpx/Writer.cpp \
     gpxgenerator.cpp \
     stereoimageiokitti.cpp \
-    oxtsiokitti.cpp
+    gpsinertialdataiokitti.cpp \
+    gpsinertialdata.cpp \
+    headingfilter.cpp \
+    positionfilter.cpp
 
 HEADERS  += maindialog.h \
     #selectcamerasdialog.h \
@@ -122,7 +125,11 @@ HEADERS  += maindialog.h \
     ../gpxlib/gpx/Writer.h \
     gpxgenerator.h \
     stereoimageiokitti.h \
-    oxtsiokitti.h
+    gpsinertialdataiokitti.h \
+    gpsinertialdata.h \
+    coordinateconverter.h \
+    headingfilter.h \
+    positionfilter.h
       ../dirent/include/dirent.h
 
 FORMS    += maindialog.ui #\
@@ -135,4 +142,9 @@ LIBS += -lGLU -L/usr/local/lib \
                  -lopencv_imgcodecs\ #-lcxcore -lcv -lhighgui
         -L"/usr/lib/x85_64-linux-gnu" -lexpat
 
-QMAKE_CXXFLAGS += -O3 -pipe -fomit-frame-pointer -msse3
+QMAKE_CXXFLAGS += -O0 -pipe -fomit-frame-pointer -msse3
+
+QMAKE_CXXFLAGS += -O0
+QMAKE_CXXFLAGS -= -O1
+QMAKE_CXXFLAGS -= -O2
+QMAKE_CXXFLAGS -= -O3

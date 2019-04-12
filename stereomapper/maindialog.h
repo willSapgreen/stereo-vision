@@ -18,6 +18,7 @@
 #include "gpsinertialdata.h"
 
 #include "headingfilter.h"
+#include "positionfilter.h"
 
 namespace Ui
 {
@@ -42,6 +43,7 @@ private:
     GPSInertialData*      _gps_inertial_data;
     VisualOdometryThread* _visual_odom_thread;
     HeadingFilter*        _heading_filter;
+    PositionFilter*       _position_filter;
     StereoThread*         _stereo_thread;
     ReadFromFilesThread*  _read_thread;
     VisualizeThread*      _visualize_thread;
@@ -68,11 +70,7 @@ private:
     GpxGenerator* _visual_odom_gpx_generator;
     Matrix _cam_to_imu_trans;
     bool _is_cam_to_imu_transformation_ready;
-    Matrix _pseudo_first_gps_inertial_pos; // coordinate: spherical mercator EPSG:3785 Google Mercator WGS 84-Pseudo-Mercator.
-    bool _is_first_gps_inertial_data_ready;
-
-    // TODO: Move to another file later
-    void calculateRollPitchYawFromTransformation( const Matrix& transformation, double& roll, double& pitch, double& yaw ) const;
+    bool _is_first_gnss_ins_ready;
 
 private slots:
 

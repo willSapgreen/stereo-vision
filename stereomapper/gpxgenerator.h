@@ -12,6 +12,7 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <math.h>
 
 // gpxlib files
 #include "gpx/Node.h"
@@ -28,6 +29,8 @@
 class GpxGenerator
 {
 public:
+
+    const static int EARTH_RADIUS = 6378137;
 
     /*
      * Default constructor.
@@ -59,12 +62,40 @@ public:
     bool close();
 
     /*
+     * Reset the GPX generator.
+     * [out] true if reset works.
+     */
+    bool reset();
+
+    /*
      * Add the new position( latitude and longitude ).
      * [in]  a_Latitude:    the latitude of the new position. Unit: radian.
      * [in]  a_Longtitude:  the longtitude of the new position. Unit: radian.
      * [out] true if adding the new position works.
      */
     bool AddNewPosition( const std::string latitude, const std::string longitude );
+
+    /*
+     * Convert Lat/Lon in WGS84 Datum to XY in Spherical Mercrator ESPG:900913
+     * [in] Latitude.
+     * [in] Longitude.
+     * [in/out] x.
+     * [in/out] y.
+     * [out] flag to indicate if the output xy is valid.
+     * Ref: http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/
+     */
+    static bool LatLonToMeters(float lat, float lon, float& x, float& y );
+
+    /*
+     * Convert XY in Spherical Mercrator ESPG:900913 to Lat/Lon in WGS84 Datum.
+     * [in] x.
+     * [in] y.
+     * [in/out] latitude.
+     * [in/out] longitude.
+     * [out] flag to indicate if the output lat/lon is valid.
+     * Ref: http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/
+     */
+    static bool MetersToLatLon(float x, float y, float& lat, float& lon);
 
 private:
 
@@ -97,12 +128,6 @@ private:
      * The written GPX file path.
      */
     std::string _FilePath;
-
-    /*
-     * Reset the GPX generator.
-     * [out] true if reset works.
-     */
-    bool reset();
 
     /*
      * Initialize the GPX root.

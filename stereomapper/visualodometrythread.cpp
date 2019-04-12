@@ -56,6 +56,8 @@ VisualOdometryThread::VisualOdometryThread(CalibIOKITTI *calib,QObject *parent)
     _record_raw_odometry = false;
     _H_total = Matrix(4,4);
     _H_total.eye();
+    _H_Delta = Matrix(4,4);
+    _H_Delta.eye();
 }
 
 VisualOdometryThread::~VisualOdometryThread()
@@ -97,8 +99,12 @@ void VisualOdometryThread::run()
         dim[2] = _simg->step;
 
         _visualOdomStereo->process(_simg->I1, _simg->I2, dim, false);
-        Matrix H_inv = Matrix::eye(4);
-        Matrix H = _visualOdomStereo->getMotion();
+        Matrix H_Delta_inv = Matrix::eye(4);
+        Matrix H_Delta = _visualOdomStereo->getDeltaMotion();
+        _H_Delta = H_Delta; // Because Matrix::solve will change Matrix's element.
+        _visualOdomStereo->calculateRollPitchYawFromTransformation( _delta_roll, _delta_pitch, _delta_yaw );
+        _visualOdomStereo->calculateVelocityFromTransformation( _delta_vel );
+
 
         // get inliers
         vector<int32_t> inliers = _visualOdomStereo->getInlierIndices();
@@ -115,14 +121,14 @@ void VisualOdometryThread::run()
         // compute gain
         _gain = _visualOdomStereo->getGain( inliers );
 
-        if (H_inv.solve(H))
+        if (H_Delta_inv.solve(H_Delta))
         {
-            // Why not _H_total = H_inv * _H_total
+            // Why not _H_total = H_Delta_inv * _H_total
             // Because
             // 1. we apply the transformation on the local coordinate.
             // 2. OpenGL uses post-multiplication order for a series of transformation operations.
             // Detail: http://web.cse.ohio-state.edu/~wang.3602/courses/cse5542-2013-spring/6-Transformation_II.pdf
-            _H_total = _H_total * H_inv;
+            _H_total = _H_total * H_Delta_inv;
             _picked = false;
         }   
     }

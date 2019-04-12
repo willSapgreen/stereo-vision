@@ -19,16 +19,20 @@ public:
     ~VisualOdometryThread();
     void pushBack(StereoImage::simage& s,bool record_raw_odometry=false);
     std::vector<Matcher::p_match> getMatches() { return _visualOdomStereo->getMatches(); }
-    std::vector<bool> getInliers() { return _inliers; }
+    std::vector<bool> getInliers() const { return _inliers; }
     StereoImage::simage* getStereoImage() { return _simg; }
-    Matrix getHomographyTotal() { return _H_total; }
+    Matrix getHomographyTotal() const { return _H_total; }
+    Matrix getHomographyDelta() const { return _H_Delta; }
     float getGain() { return _gain; }
     void resetHomographyTotal() { _H_total.eye(); }
-    void pickedUp() { _picked = true; }
+    void resetHomographyDelta() { _H_Delta.eye(); }
 
-    // The latest( accmulated ) transformation matrix.
-    // current_transformation = previous_transformation * new_delta_transformation
-    Matrix _H_total;
+    void getVisualOdomStatus( double& roll, double& pitch, double& yaw, double& vel, double& alt )
+    {
+        roll = _delta_roll; pitch = _delta_pitch; yaw = _delta_yaw; vel = _delta_vel; alt = _delta_alt;
+    }
+
+    void pickedUp() { _picked = true; }
 
 protected:
 
@@ -54,6 +58,21 @@ private:
     bool                            _record_raw_odometry;
     float                           _gain;
     bool                            _picked;
+
+
+    // The latest( accmulated ) transformation matrix.
+    // current_transformation = previous_transformation * new_delta_transformation
+    Matrix _H_total;
+
+    // The latest delta transformation matrix.
+    Matrix _H_Delta;
+
+    // Statuses in the NED coordinate extracted from the latest delta transformation.
+    double _delta_yaw;
+    double _delta_pitch;
+    double _delta_roll;
+    double _delta_vel;
+    double _delta_alt;
 
 signals:
 

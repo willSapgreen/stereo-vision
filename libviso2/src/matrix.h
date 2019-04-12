@@ -19,6 +19,9 @@ libviso2; if not, write to the Free Software Foundation, Inc., 51 Franklin
 Street, Fifth Floor, Boston, MA 02110-1301, USA 
 */
 
+// Consider replacing this matrix.h with Eigen library (http://eigen.tuxfamily.org/index.php?title=Main_Page)
+
+
 #ifndef MATRIX_H
 #define MATRIX_H
 
@@ -122,8 +125,8 @@ public:
 
     // direct data access
     FLOAT** _val;
-    int32_t _m;
-    int32_t _n;
+    int32_t _m; // row
+    int32_t _n; // col
 
 private:
 

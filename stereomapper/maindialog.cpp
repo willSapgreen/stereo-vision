@@ -7,21 +7,21 @@
 
 #define DEBUG_MAIN_DIALOG_ON_FUNCTION 0
 #define DEBUG_SHOW_CALIBRATION_MATRIX 0
-#define DEBUG_SHOW_HOMOGRAPHY_RESULT 1
-#define DEBUG_SHOW_GPS_INERTIAL_RESULT 1
+#define DEBUG_SHOW_VISUAL_ODOM_RESULT 0
+#define DEBUG_SHOW_GNSS_INS_RESULT 0
 
-#if DEBUG_SHOW_HOMOGRAPHY_RESULT
-    int HOMOGRAPHY_COUNT = 0;
+#if DEBUG_SHOW_VISUAL_ODOM_RESULT
+    int VISUAL_ODOM_COUNT = 0;
 #endif
 
-#if DEBUG_SHOW_GPS_INERTIAL_RESULT
-    int GPS_INERTIAL_COUNT = 0;
+#if DEBUG_SHOW_GNSS_INS_RESULT
+    int GNSS_INS_COUNT = 0;
 #endif
 MainDialog::MainDialog(QWidget *parent) :
     QDialog(parent),
     _ui(new Ui::MainDialog),
     _is_cam_to_imu_transformation_ready(false),
-    _is_first_gps_inertial_data_ready(false)
+    _is_first_gnss_ins_ready(false)
 {
     setWindowFlags(Qt::WindowMinMaxButtonsHint);
     _ui->setupUi(this);
@@ -33,6 +33,7 @@ MainDialog::MainDialog(QWidget *parent) :
     _capture_mutex = new QMutex();
     _visual_odom_thread     = new VisualOdometryThread(_calib);
     _heading_filter = new HeadingFilter();
+    _position_filter = new PositionFilter();
     _stereo_thread = new StereoThread(_calib,_ui->modelView);
     _stereo_image_io = new StereoImageIOKITTI();
     _gps_inertial_data_io = new GPSInertialDataIOKITTI();
@@ -92,6 +93,16 @@ MainDialog::~MainDialog()
     {
         _visual_odom_gpx_generator->close();
         delete _visual_odom_gpx_generator;
+    }
+
+    if( _heading_filter != NULL )
+    {
+        delete _heading_filter;
+    }
+
+    if( _position_filter != NULL )
+    {
+        delete _position_filter;
     }
 }
 
@@ -329,7 +340,7 @@ void MainDialog::on_stereoScanButton_clicked()
     }
 
     _is_cam_to_imu_transformation_ready = false;
-    _is_first_gps_inertial_data_ready = false;
+    _is_first_gnss_ins_ready = false;
 }
 
 //==============================================================================//
@@ -511,36 +522,46 @@ void MainDialog::onNewHomographyArrived()
         //_ui->modelView->addCamera(H_total,0.05,false);
     }
 
-    if(true == _is_cam_to_imu_transformation_ready)
+    if( _is_cam_to_imu_transformation_ready )
     {
-        // Calculate the translation from the vehicle frame to the NED frame.
-        double roll;
-        double pitch;
-        double yaw;
-        calculateRollPitchYawFromTransformation( H_total, roll, pitch, yaw );
-        //_heading_filter->UpdateWithNewHeading( yaw );
+        // Calculate the delta_roll, delta_pitch, delta_yaw
+        double delta_roll;
+        double delta_pitch;
+        double delta_yaw;
+        double delta_velocity;
+        double delta_altitude;
+        _visual_odom_thread->getVisualOdomStatus( delta_roll, delta_pitch, delta_yaw,
+                                                  delta_velocity, delta_altitude );
+        _heading_filter->UpdateHeading( delta_yaw );
 
-        double current_heading = _heading_filter->GetHeading();
+        // Calculate the delta_north_mov, delta_east_mov, delta_down_mov
+        double cur_heading = _heading_filter->GetHeading();
+        Coordinate::LOCAL_NED delta_ned(0, 0, 0);
+        delta_ned._north = delta_velocity * sin( cur_heading );
+        delta_ned._east = delta_velocity * cos( cur_heading );
+        delta_ned._down = delta_altitude;
 
+        // Update LLA position
+        double lat_scale;
+        double lon_scale;
+        Coordinate::calculateScaleLLToNE( _position_filter->GetPosition(), lat_scale, lon_scale );
+        Coordinate::GEOD_LLA delta_lla( delta_ned._north / lat_scale,
+                                        delta_ned._east / lon_scale,
+                                        delta_ned._down );
+        _position_filter->UpdatePosition( delta_lla );
+        Coordinate::GEOD_LLA cur_pos = _position_filter->GetPosition();
 
-        /*
-        // Calculate the latest EPSG:3785 position.
-        Matrix latest_pos = H_total * _pseudo_first_gps_inertial_pos; //_cam_to_imu_trans * H_total * _pseudo_first_gps_inertial_pos;
-
-        // Convert to Lat/Lon.
-        float lat = 0.0F;
-        float lon = 0.0F;
-        GpxGenerator::MetersToLatLon(latest_pos._val[0][0], latest_pos._val[0][1], lat, lon);
-
-        // Write into the GPX file.
-        if(_visual_odom_gpx_generator->is_open())
+        // Write into the GPX file
+        if( _visual_odom_gpx_generator->is_open() )
         {
-            _visual_odom_gpx_generator->AddNewPosition(std::to_string(lat), std::to_string(lon));
+            _visual_odom_gpx_generator->AddNewPosition( std::to_string( cur_pos._lat * Coordinate::R2D ),
+                                                        std::to_string( cur_pos._lon * Coordinate::R2D ) );
         }
-        */
-#if DEBUG_SHOW_HOMOGRAPHY_RESULT
-        std::cout << HOMOGRAPHY_COUNT << " - Visual Yaw - " << (yaw + current_heading) << std::endl;
-        HOMOGRAPHY_COUNT++;
+
+#if DEBUG_SHOW_VISUAL_ODOM_RESULT
+        std::cout << "VISUAL_ODOM: " << cur_pos._lat * Coordinate::R2D <<
+                     " , " << cur_pos._lon * Coordinate::R2D<< " , " << cur_heading << "\n====\n";
+        VISUAL_ODOM_COUNT++;
 #endif
     }
     _stereo_image->pickedUp(); // it is okay to retrieve next data
@@ -593,35 +614,29 @@ void MainDialog::onNewGPSInertialDataArrived()
     GPSInertialDataFormat data = _gps_inertial_data->getData();
 
     // Store the first data.
-    if( false == _is_first_gps_inertial_data_ready )
+    if( false == _is_first_gnss_ins_ready )
     {
-        float x = 0.0F;
-        float y = 0.0F;
-        GpxGenerator::LatLonToMeters(data.lat, data.lon, x, y);
-        Matrix pos(4,4);
-        pos._val[0][0] = x;
-        pos._val[0][1] = y;
-        pos._val[0][2] = data.alt;
-        pos._val[0][3] = 1.0F;
-        _pseudo_first_gps_inertial_pos = pos;
-
-
         // Initialize the heading filter.
         _heading_filter->SetHeading( data.yaw );
 
-        _is_first_gps_inertial_data_ready = true;
+        // Initialize the position filter.
+        Coordinate::GEOD_LLA lla( data.lat * Coordinate::D2R,
+                                  data.lon * Coordinate::D2R,
+                                  data.alt );
+        _position_filter->SetPosition( lla );
+
+        _is_first_gnss_ins_ready = true;
     }
 
     // Write into the GPX file.
     if(_ground_truth_gpx_generator->is_open())
     {
         _ground_truth_gpx_generator->AddNewPosition(std::to_string(data.lat), std::to_string(data.lon));
-#if DEBUG_SHOW_GPS_INERTIAL_RESULT
-        //std::cout << "gps-inertial pos\n" << data.lat << " , " << data.lon << "\n=====\n";
-        std::cout << GPS_INERTIAL_COUNT << " - GPS Yaw - " << data.yaw << std::endl;
-        GPS_INERTIAL_COUNT++;
-#endif
     }
+#if DEBUG_SHOW_GNSS_INS_RESULT
+        std::cout << "GNSS_INS: " << data.lat << " , " << data.lon << " , " << data.yaw <<  "\n=====\n";
+        GNSS_INS_COUNT++;
+#endif
     _gps_inertial_data->pickedUp();
 }
 
@@ -638,15 +653,4 @@ void MainDialog::onPlaybackDataFinished()
     {
         _visual_odom_gpx_generator->close();
     }
-}
-
-//==============================================================================//
-
-void MainDialog::calculateRollPitchYawFromTransformation( const Matrix& transformation, double& roll, double& pitch, double& yaw ) const
-{
-    // Reference: http://planning.cs.uiuc.edu/node103.html
-    yaw = atan2( transformation._val[1][0], transformation._val[0][0] );
-    pitch = atan2( -transformation._val[2][0],\
-                   sqrt( transformation._val[2][1] * transformation._val[2][1] + transformation._val[2][2] * transformation._val[2][2] ) );
-    roll = atan2( transformation._val[2][1], transformation._val[2][2] );
 }

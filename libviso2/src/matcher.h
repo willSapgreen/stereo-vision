@@ -119,17 +119,33 @@ public:
     // parameter description see above
     void pushBack(uint8_t *I1,int32_t* dims,const bool replace) { pushBack(I1,0,dims,replace); }
 
-    // match features currently stored in ring buffer (current and previous frame)
-    // input: method ... 0 = flow, 1 = stereo, 2 = quad matching
-    //        Tr_delta: uses motion from previous frame to better search for
-    //                  matches, if specified
+    /**
+     * @brief matchFeatures
+     *        match features currently stored in ring buffer ( current and previous frames )
+     * @param method: [in] 0 = flow, 1 = stereo, 2 = quad matching TODO: replace with enum
+     * @param Tr_delta: [in] motion from previous process to better search for matches, if specified.
+     */
     void matchFeatures(int32_t method, Matrix *Tr_delta = 0);
 
     // feature bucketing: keeps only max_features per bucket, where the domain
     // is split into buckets of size (bucket_width,bucket_height)
+    /**
+     * @brief bucketFeatures
+     *        organize the matched points in _p_matched.
+     *        keeps only max_feature number of matched points per bucket,
+     *        where the domain is split into bucket_width * bucket_height
+     * @param max_features: [in] the maximum number of matched points stored in each bucket
+     * @param bucket_width: [in] the width of a bucket
+     * @param bucket_height: [in] the height of a bucket
+     */
     void bucketFeatures(int32_t max_features,float bucket_width,float bucket_height);
 
     // return vector with matched feature points and indices
+    /**
+     * @brief getMatches:
+     *        get matched points calculated from dense maximum algorithm
+     * @return matched points
+     */
     std::vector<Matcher::p_match> getMatches() { return _p_matched_2; }
 
     // given a vector of inliers computes gain factor between the current and
@@ -140,6 +156,7 @@ public:
 private:
 
     // structure for storing interest points
+    // TODO: replace int32_t c with enum
     struct maximum
     {
         int32_t u;   // u-coordinate
@@ -180,6 +197,15 @@ private:
     }
 
     // Alexander Neubeck and Luc Van Gool: Efficient Non-Maximum Suppression, ICPR'06, algorithm 4
+    /**
+     * @brief nonMaximumSuppression:
+     *        store the maximum points based on I_f1 and I_f2 feature maps
+     * @param I_f1: [in] feature map ( blob5x5 )
+     * @param I_f2: [in] feature map ( checkboard5x5 )
+     * @param dims: [in] I_f1 and I_f2 dimensions
+     * @param maxima: [in/out] stored maximum points
+     * @param nms_n: [in/out] the distance between feature point candidates
+     */
     void nonMaximumSuppression(int16_t* I_f1,int16_t* I_f2,const int32_t* dims,
                                std::vector<Matcher::maximum> &maxima,int32_t nms_n);
 
@@ -187,34 +213,139 @@ private:
     inline uint8_t saturate(int16_t in);
     void filterImageAll(uint8_t* I,uint8_t* I_du,uint8_t* I_dv,int16_t* I_f1,int16_t* I_f2,const int* dims);
     void filterImageSobel(uint8_t* I,uint8_t* I_du,uint8_t* I_dv,const int* dims);
+
+    /**
+     * @brief computeDescriptor:
+     *        compute descriptor in a maximum.
+     *        This function is called for each maximum in computeDescriptors
+     * @param I_du: [in] feature map ( sobel5x5 horizontal direction )
+     * @param I_dv: [in] feature map ( sobel5x5 vertical direction )
+     * @param bpl: [in] byte per line ( the 16-multiple width )
+     * @param u: [in] x position of the point
+     * @param v: [in] y position of the point
+     * @param desc_addr: [in] d1's first 8 bit address
+     */
     inline void computeDescriptor(const uint8_t* I_du,const uint8_t* I_dv,
                                   const int32_t &bpl,const int32_t &u,const int32_t &v,uint8_t *desc_addr);
+
+    /**
+     * @brief computeDescriptor:
+     *        compute descriptor in a maximum.
+     *        This function only calculate d1-d4 descriptors.
+     * @param I_du: [in] feature map ( sobel5x5 horizontal direction )
+     * @param I_dv: [in] feature map ( sobel5x5 vertical direction )
+     * @param bpl: [in] byte per line ( the 16-multiple width )
+     * @param u: [in] x position of the point
+     * @param v: [in] y position of the point
+     * @param desc_addr: [in] d1's first 8 bit address
+     */
     inline void computeSmallDescriptor(const uint8_t* I_du,const uint8_t* I_dv,
                                        const int32_t &bpl,const int32_t &u,const int32_t &v,uint8_t *desc_addr);
+    /**
+     * @brief computeDescriptors:
+     *        compute descriptors in each maximum extracted from nonMaximumSuppression
+     * @param I_du: [in] feature map ( sobel5x5 horizontal direction )
+     * @param I_dv: [in] feature map ( sobel5x5 vertical direction )
+     * @param bpl: [in] byte per line ( the 16-multiple width )
+     * @param maxima: [in/out] stored maximums
+     */
     void computeDescriptors(uint8_t* I_du,uint8_t* I_dv,const int32_t bpl,std::vector<Matcher::maximum> &maxima);
 
+    /**
+     * @brief getHalfResolutionDimensions:
+     *        calculate half dimensions
+     * @param dims: [in] input dimensions
+     * @param dims_half: [out] output half dimensions
+     */
     void getHalfResolutionDimensions(const int32_t *dims,int32_t *dims_half);
+
+    /**
+     * @brief createHalfResolutionImage
+     *        using 16-multiple-width speeds up the convertion.
+     * @param I: [in] input image
+     * @param dims: [in] input image dimension
+     * @return half resolution image
+     */
     uint8_t* createHalfResolutionImage(uint8_t *I,const int32_t* dims);
 
-    // compute sparse set of features from image
-    // inputs:  I ........ image
-    //          dims ..... image dimensions [width,height]
-    //          n ........ non-max neighborhood
-    //          tau ...... non-max threshold
-    // outputs: max ...... vector with maxima [u,v,value,class,descriptor (128 bits)]
-    //          I_du ..... gradient in horizontal direction
-    //          I_dv ..... gradient in vertical direction
-    // WARNING: max,I_du,I_dv has to be freed by yourself!
-    void computeFeatures(uint8_t *I,const int32_t* dims,int32_t* &max1,int32_t &num1,
-                          int32_t* &max2,int32_t &num2,uint8_t* &I_du,uint8_t* &I_dv,
-                          uint8_t* &I_du_full,uint8_t* &I_dv_full);
+    /**
+     * @brief computeFeatures:
+     *        compute feature descriptors from input image
+     * @param I: [in] input image
+     * @param dims: [in] input image dimensions - [width, height, 16-multiple width]
+     * @param max1: [in/out] sparse maximums (1st pass) with descriptors
+     * @param num1: [in/out] number of sparse maximums
+     * @param max2: [in/out] dense maximums (2nd pass) with descriptors
+     * @param num2: [in/out] number of dense maximums
+     * @param I_du: [in/out] feature map ( sobel5x5 horizontal direction ) from half resolution image
+     * @param I_dv: [in/out] feature map ( sobel5x5 vertical direction ) from half resolution image
+     * @param I_du_full: [in/out] feature map ( sobel5x5 horizontal direction )
+     * @param I_dv_full: [in/out] feature map ( sobel5x5 vertical direction )
+     * WARNING: max,I_du,I_dv has to be freed by yourself!
+     */
+    void computeFeatures(uint8_t *I,const int32_t* dims,
+                         int32_t* &max1, int32_t &num1,
+                         int32_t* &max2, int32_t &num2,
+                         uint8_t* &I_du, uint8_t* &I_dv,
+                         uint8_t* &I_du_full, uint8_t* &I_dv_full);
 
     // matching functions
     void computePriorStatistics (std::vector<Matcher::p_match> &p_matched,int32_t method);
+
+    /**
+     * @brief createIndexVector:
+     *        create an array of vector.
+     *        The array represents a 3D matrix, class_num by v_bin_num by u_bin_num, in one dimension.
+     *        Each grid in the array is a vector.
+     * @param m: [in] maximums
+     * @param n: [in] number of maximums
+     * @param k: [in/out] index vector pointer
+     *           the vector can be considered as a (class_num by u_bin_num by v_bin_num) 3D matrix
+     *           stored in one dimension vector.
+     * @param u_bin_num: [in] bin number in horizontal direction
+     * @param v_bin_num: [in] bin number in vertical direction
+     */
     void createIndexVector(int32_t* m,int32_t n,std::vector<int32_t> *k,const int32_t &u_bin_num,const int32_t &v_bin_num);
+
+
+    /**
+     * @brief findMatch
+     *
+     * @param m1: [in] maximums
+     * @param i1: [in] maximum index in m1
+     * @param m2: [in] maximums
+     * @param step_size: [in] step size in m1 or m2's memory.
+     * @param k2: [in] index vector of m2
+     * @param u_bin_num: [in] bin number in horizontal direction
+     * @param v_bin_num: [in] bin number in vertical direction
+     * @param stat_bin: [in] used to limit the search area if use_prior is true
+     * @param min_ind: [in/out] the index of the best matched candidate in m2
+     * @param stage: [in] used to limit the search area if use_prior is true
+     * @param flow: [in] true if the matching method is STEREO. limit the search in "horizontal" direction
+     * @param use_prior: [in] true if using the prior information ( restrict the search area )
+     * @param u_: [in] horizontal motion from precious image to current image
+     * @param v_: [in] vertical motion from precious image to current image
+     */
     inline void findMatch(int32_t* m1,const int32_t &i1,int32_t* m2,const int32_t &step_size,
                           std::vector<int32_t> *k2,const int32_t &u_bin_num,const int32_t &v_bin_num,const int32_t &stat_bin,
                           int32_t& min_ind,int32_t stage,bool flow,bool use_prior,double u_=-1,double v_=-1);
+
+    /**
+     * @brief matching:
+     *        search the matched maximums which appear in previous 1st+2nd images and also current 1st+2nd images
+     * @param m1p: [in] maximums in previous 1st frame
+     * @param m2p: [in] maximums in previous 2nd frame
+     * @param m1c: [in] maximums in current 1st frame
+     * @param m2c: [in] maximums in current 2nd frame
+     * @param n1p: [in] number of maximums in previous 1st frame
+     * @param n2p: [in] number of maximums in previous 2nd frame
+     * @param n1c: [in] number of maximums in current 1st frame
+     * @param n2c: [in] number of maximums in current 2nd frame
+     * @param p_matched: [in/out] stored p_match points
+     * @param method: [in] the matching method
+     * @param use_prior: [in] flag to determine if using prior information ( sparse information )
+     * @param Tr_delta: [in] motion estimated from previous frame
+     */
     void matching(int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
                   int32_t n1p,int32_t n2p,int32_t n1c,int32_t n2c,
                   std::vector<Matcher::p_match> &p_matched,int32_t method,bool use_prior,Matrix *Tr_delta = 0);
@@ -239,11 +370,17 @@ private:
     // mean for gain computation
     inline float mean(const uint8_t* I,const int32_t &bpl,const int32_t &u_min,const int32_t &u_max,const int32_t &v_min,const int32_t &v_max);
 
-    // parameters
-    // 'c': current.
-    // 'p': previous.
-    // 'v': vertical direction.
-    // 'u': horizontal direction.
+    // parameter naming rule:
+    // 'c': current
+    // 'p': previous
+    // 'v': vertical direction
+    // 'u': horizontal direction
+    // 'm': struct maximum
+    // 'n': number of struct maximum
+    // 1st '1': first image ( left image in the current design )
+    // 1st '2': second image ( right image in the current design )
+    // 2nd '1': 1st pass via non-maximum suppression: sparse maximum
+    // 2nd '2': 2nd pass via non-maximum suppression: dense maximum
     parameters _param;
     int32_t    _margin;
     int32_t* _m1p1;
@@ -282,11 +419,11 @@ private:
     uint8_t* _I2p_dv_full;
     uint8_t* _I1c_dv_full;
     uint8_t* _I2c_dv_full; // half-res matching
-    int32_t _dims_p[3];
+    int32_t _dims_p[3]; // [0]: width [1]: height [2]: new width ( multiple of 16 )
     int32_t _dims_c[3];
 
-    std::vector<Matcher::p_match> _p_matched_1;
-    std::vector<Matcher::p_match> _p_matched_2;
+    std::vector<Matcher::p_match> _p_matched_1; // matched points in sparse maximum
+    std::vector<Matcher::p_match> _p_matched_2; // matched points in dense maximum
     std::vector<Matcher::range>   _ranges;
 };
 

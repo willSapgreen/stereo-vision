@@ -66,7 +66,7 @@ bool VisualOdometry::updateMotion()
 
 //==============================================================================//
 
-Matrix VisualOdometry::transformationVectorToMatrix(vector<double> tr)
+Matrix VisualOdometry::transformationVectorToMatrix(std::vector<double> tr)
 {
     // extract parameters
     double rx = tr[0];
@@ -103,7 +103,9 @@ vector<int32_t> VisualOdometry::getRandomSample(int32_t N,int32_t num)
 
     // create vector containing all indices
     for (int32_t i=0; i<N; i++)
-    totalset.push_back(i);
+    {
+        totalset.push_back(i);
+    }
 
     // add num indices to current sample
     sample.clear();
@@ -116,4 +118,34 @@ vector<int32_t> VisualOdometry::getRandomSample(int32_t N,int32_t num)
 
     // return sample
     return sample;
+}
+
+//==============================================================================//
+
+void VisualOdometry::calculateRollPitchYawFromTransformation( double& roll, double& pitch, double& yaw ) const
+{
+    // Reference:
+    // 1. http://planning.cs.uiuc.edu/node103.html
+    // 2. Matrix VisualOdometry::transformationVectorToMatrix(std::vector<double> tr)
+    roll = atan2( -_Tr_delta._val[0][1], _Tr_delta._val[0][0] );
+    pitch = atan2( -_Tr_delta._val[1][2], _Tr_delta._val[2][2] );
+    yaw = atan2( _Tr_delta._val[0][2],\
+                 sqrt( _Tr_delta._val[0][0] * _Tr_delta._val[0][0] + _Tr_delta._val[0][1] * _Tr_delta._val[0][1] ) );
+
+}
+
+//==============================================================================//
+
+void VisualOdometry::calculateVelocityFromTransformation( double& velocity ) const
+{
+    // http://www.cvlibs.net/software/libviso/
+    // Get delta x and delta z
+    velocity = sqrt( _Tr_delta._val[0][3] * _Tr_delta._val[0][3] + _Tr_delta._val[2][3] * _Tr_delta._val[2][3]  );
+}
+
+//==============================================================================//
+
+void VisualOdometry::calculateAltitudeFromTransformation( double& altitude ) const
+{
+    altitude = _Tr_delta._val[1][3];
 }

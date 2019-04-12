@@ -51,6 +51,8 @@ class Descriptor
 
 public:
   
+    const size_t DESCRIPTOR_MM_MALLOC_ALIGN = 16;
+
     // constructor creates filters
     Descriptor(uint8_t* I,int32_t width,int32_t height,int32_t bpl,bool half_resolution);
 
@@ -62,7 +64,17 @@ public:
   
 private:
 
-    // build descriptor I_desc from I_du and I_dv
+    // build descriptor _I_desc from I_du and I_dv
+    /**
+     * @brief createDescriptor:
+     *        build descriptor I_desc from I_du and I_dv
+     * @param I_du: [in] sobel3x3 in horizontal direction
+     * @param I_dv: [in] sobel3x3 in vertical direction
+     * @param width: [in] input image width
+     * @param height: [in] input image height
+     * @param bpl: [in] byte per line in input image
+     * @param half_resolution: [in] flag to decide if only processing half resolution of input image
+     */
     void createDescriptor(uint8_t* I_du,uint8_t* I_dv,int32_t width,int32_t height,int32_t bpl,bool half_resolution);
 
 };

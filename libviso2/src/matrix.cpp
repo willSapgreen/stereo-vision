@@ -642,6 +642,10 @@ FLOAT Matrix::det()
 
 //==============================================================================//
 
+
+// TODO:
+// &M's element will be changed( Line 733 and Line 734 ) even with const
+// Fix it.
 bool Matrix::solve(const Matrix &M, FLOAT eps)
 {
     // substitutes

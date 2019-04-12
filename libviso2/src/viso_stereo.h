@@ -70,11 +70,54 @@ public:
 
 private:
 
+    enum result { UPDATED, FAILED, CONVERGED };
+
+    /**
+     * @brief estimateMotion
+     *        calculate the motion based on passed matched points
+     * @param p_matched: [in] matched points
+     * @return motion stored in std::vector format
+     */
     std::vector<double>  estimateMotion (std::vector<Matcher::p_match> p_matched);
-    enum                 result { UPDATED, FAILED, CONVERGED };
-    result               updateParameters(std::vector<Matcher::p_match> &p_matched,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps);
-    void                 computeObservations(std::vector<Matcher::p_match> &p_matched,std::vector<int32_t> &active);
-    void                 computeResidualsAndJacobian(std::vector<double> &tr,std::vector<int32_t> &active);
+
+
+
+    /**
+     * @brief updateParameters
+     *        execute Kalman Filter time and measurement update
+     *        to calculate the motion(tr)
+     * @param p_matched: [in] matched points
+     * @param active: [in] the indices of the matched points used in Kalman Filter
+     * @param tr: [in/out] the estimated motion which will be updated based on active matched points
+     * @param step_size
+     * @param eps
+     * @return the Kalman filter process result
+     */
+    result updateParameters(std::vector<Matcher::p_match> &p_matched,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps);
+
+    /**
+     * @brief computeObservations:
+     *        construct the measurement(observations) matrix
+     *
+     * @param p_matched: [in] matched feature points
+     * @param active: [in] random selected indices in matched feature points
+     */
+    void computeObservations(std::vector<Matcher::p_match> &p_matched,std::vector<int32_t> &active);
+
+    /**
+     * @brief computeResidualsAndJacobian:
+     *        compute residual and Jacobian matrix of transformation matrix
+     *        Pc = Tr * Pp
+     *        where Pc is the current 3D position in homogenerous coordinate. (4x1)
+     *              Tr is the transofmration matrix |R|T|
+     *                                              |0|1|. (4x4)
+     *              Pp is the previous 3D position in homogenerous coordinate. (4x1)
+     * @param tr: [in] transformation(motion) matrix
+     * @param active: [in] random selected indices in mathced feature points
+     */
+    void computeResidualsAndJacobian(std::vector<double> &tr,std::vector<int32_t> &active);
+
+
     std::vector<int32_t> getInlier(std::vector<Matcher::p_match> &p_matched,std::vector<double> &tr);
 
     // 3d points

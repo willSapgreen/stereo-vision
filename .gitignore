@@ -36,3 +36,6 @@ CMakeLists.txt.user*
 
 # Folder
 ./Code
+bin/*
+*.user
+*vscode/*

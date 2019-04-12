@@ -86,10 +86,16 @@ public:
     // homogeneous transformation matrix Tr_delta, with the following semantics:
     // p_t = Tr_delta * p_ {t-1} takes a point in the camera coordinate system
     // at time t_1 and maps it to the camera coordinate system at time t.
-    // note: getMotion() returns the last transformation even when process()
+    // note: getDeltaMotion() returns the last transformation even when process()
     // has failed. this is useful if you wish to linearly extrapolate occasional
     // frames for which no correspondences have been found
-    Matrix getMotion() { return _Tr_delta; }
+    Matrix getDeltaMotion() const { return _Tr_delta; }
+
+    void calculateRollPitchYawFromTransformation( double& roll, double& pitch, double& yaw ) const;
+
+    void calculateVelocityFromTransformation( double& velocity ) const;
+
+    void calculateAltitudeFromTransformation( double& altitude ) const;
 
     // returns previous to current feature matches from internal matcher
     std::vector<Matcher::p_match> getMatches() { return _matcher->getMatches(); }
@@ -111,7 +117,7 @@ public:
     // streams out the current transformation matrix Tr_delta
     friend std::ostream& operator<<(std::ostream &os,VisualOdometry &viso)
     {
-        Matrix p = viso.getMotion();
+        Matrix p = viso.getDeltaMotion();
         os << p._val[0][0] << " " << p._val[0][1] << " "  << p._val[0][2]  << " "  << p._val[0][3] << " ";
         os << p._val[1][0] << " " << p._val[1][1] << " "  << p._val[1][2]  << " "  << p._val[1][3] << " ";
         os << p._val[2][0] << " " << p._val[2][1] << " "  << p._val[2][2]  << " "  << p._val[2][3];
@@ -120,10 +126,27 @@ public:
 
 protected:
 
-  // calls bucketing and motion estimation
+  /**
+   * @brief updateMotion
+   * Kalman Filter Predict translational and rotational velocities,
+   * [Vx, Vy, Vz, Wx, Wy, Wz]
+   * and the transformation matrix(4x4).
+   *
+   * @return
+   * True if valid.
+   */
   bool updateMotion();
 
-  // compute transformation matrix from transformation vector  
+  /**
+   * @brief transformationVectorToMatrix
+   * Calculate the transformation matrix from translational/rotational velocities.
+   *
+   * @param tr
+   * [Vx, Vy, Vz, Wx, Wy, Wz]: 6x1
+   *
+   * @return
+   * [R | T]: 4x4 transformation matrix from previous frame to current frame.
+   */
   Matrix transformationVectorToMatrix(std::vector<double> tr);
 
   // compute motion from previous to current coordinate system
@@ -133,7 +156,16 @@ protected:
   // get random and unique sample of num numbers from 1:N
   std::vector<int32_t> getRandomSample(int32_t N,int32_t num);
 
+  /*
+   * 4x4 matrix
+   * R T
+   * 0 1
+   * R: 3x3
+   * T: 3x1
+   */
   Matrix                         _Tr_delta;   // transformation (previous -> current frame)
+
+
   bool                           _Tr_valid;   // motion estimate exists?
   Matcher*                       _matcher;    // feature matcher
   std::vector<int32_t>           _inliers;    // inlier set
@@ -145,6 +177,7 @@ protected:
 private:
   
   parameters                    _param;     // common parameters
+
 };
 
 #endif // VISO_H

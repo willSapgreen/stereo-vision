@@ -8,7 +8,7 @@
 
 GpxGenerator::GpxGenerator()
 {
-    reset();
+    //reset();
     initialize();
 }
 
@@ -96,6 +96,7 @@ bool GpxGenerator::reset()
         _GPXReport = NULL;
     }
 
+    /*
     if( _GPXTrk != NULL )
     {
         delete _GPXTrk;
@@ -107,6 +108,7 @@ bool GpxGenerator::reset()
         delete _GPXTrkSeg;
         _GPXTrkSeg = NULL;
     }
+    */
 
     _FilePath = "";
 
@@ -123,4 +125,30 @@ bool GpxGenerator::write()
         writer.write( _FileStream, _GPXRoot, true );
     }
     return true;
+}
+
+//==============================================================================//
+
+bool GpxGenerator::LatLonToMeters(float lat, float lon, float& x, float& y )
+{
+    bool is_return_valid = true;
+
+    x = lon * M_PI * EARTH_RADIUS / 180.0F;
+    y = static_cast<float>(log(tan((90.0 + lat) * M_PI / 360.0)) / (M_PI / 180.0));
+    y = y * M_PI * EARTH_RADIUS / 180.0F;
+
+    return is_return_valid;
+}
+
+//==============================================================================//
+
+bool GpxGenerator::MetersToLatLon(float x, float y, float& lat, float& lon)
+{
+    bool is_return_valid = true;
+
+    lon = (x / (M_PI * EARTH_RADIUS)) * 180.0F;
+    lat = (y / (M_PI * EARTH_RADIUS)) * 180.0F;
+    lat = 180.0F / M_PI * (2 * atan(exp(lat * M_PI / 180)) - M_PI / 2.0F);
+
+    return is_return_valid;
 }

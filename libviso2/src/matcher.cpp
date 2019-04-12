@@ -195,7 +195,7 @@ void Matcher::pushBack(uint8_t *I1,uint8_t* I2,int32_t* dims,const bool replace)
         }
     }
 
-    // compute new features for current frame
+    // compute new features descriptors for current frame
     computeFeatures(_I1c,_dims_c,_m1c1,_n1c1,_m1c2,_n1c2,_I1c_du,_I1c_dv,_I1c_du_full,_I1c_dv_full);
 
     if (I2!=0)
@@ -331,7 +331,7 @@ void Matcher::bucketFeatures(int32_t max_features,float bucket_width,float bucke
         {
             _p_matched_2.push_back(*it);
             k++;
-            if (k>=max_features)
+            if( k >= max_features )
             {
                 break;
             }
@@ -547,35 +547,35 @@ inline void Matcher::computeDescriptor(const uint8_t* I_du,const uint8_t* I_dv,
     desc_addr[k++] = I_du[addr_m1-3];
     desc_addr[k++] = I_dv[addr_m1-3];
     desc_addr[k++] = I_du[addr_p1-3];
-    desc_addr[k++] = I_dv[addr_p1-3];
+    desc_addr[k++] = I_dv[addr_p1-3]; // d1
     desc_addr[k++] = I_du[addr_m1-1];
     desc_addr[k++] = I_dv[addr_m1-1];
     desc_addr[k++] = I_du[addr_p1-1];
-    desc_addr[k++] = I_dv[addr_p1-1];
+    desc_addr[k++] = I_dv[addr_p1-1]; // d2
     desc_addr[k++] = I_du[addr_m1+3];
     desc_addr[k++] = I_dv[addr_m1+3];
     desc_addr[k++] = I_du[addr_p1+3];
-    desc_addr[k++] = I_dv[addr_p1+3];
+    desc_addr[k++] = I_dv[addr_p1+3]; // d3
     desc_addr[k++] = I_du[addr_m1+1];
     desc_addr[k++] = I_dv[addr_m1+1];
     desc_addr[k++] = I_du[addr_p1+1];
-    desc_addr[k++] = I_dv[addr_p1+1];
+    desc_addr[k++] = I_dv[addr_p1+1]; // d4
     desc_addr[k++] = I_du[addr_m5-1];
     desc_addr[k++] = I_dv[addr_m5-1];
     desc_addr[k++] = I_du[addr_p5-1];
-    desc_addr[k++] = I_dv[addr_p5-1];
+    desc_addr[k++] = I_dv[addr_p5-1]; // d5
     desc_addr[k++] = I_du[addr_m5+1];
     desc_addr[k++] = I_dv[addr_m5+1];
     desc_addr[k++] = I_du[addr_p5+1];
-    desc_addr[k++] = I_dv[addr_p5+1];
+    desc_addr[k++] = I_dv[addr_p5+1]; // d6
     desc_addr[k++] = I_du[addr_m3-5];
     desc_addr[k++] = I_dv[addr_m3-5];
     desc_addr[k++] = I_du[addr_p3-5];
-    desc_addr[k++] = I_dv[addr_p3-5];
+    desc_addr[k++] = I_dv[addr_p3-5]; // d7
     desc_addr[k++] = I_du[addr_m3+5];
     desc_addr[k++] = I_dv[addr_m3+5];
     desc_addr[k++] = I_du[addr_p3+5];
-    desc_addr[k++] = I_dv[addr_p3+5];
+    desc_addr[k++] = I_dv[addr_p3+5]; // d8
 }
 
 //==============================================================================//
@@ -777,15 +777,17 @@ uint8_t* Matcher::createHalfResolutionImage(uint8_t *I,const int32_t* dims)
 
 //==============================================================================//
 
-void Matcher::computeFeatures(uint8_t *I,const int32_t* dims,int32_t* &max1,int32_t &num1,
-                              int32_t* &max2,int32_t &num2,uint8_t* &I_du,
-                              uint8_t* &I_dv,uint8_t* &I_du_full,uint8_t* &I_dv_full)
+void Matcher::computeFeatures(uint8_t *I, const int32_t* dims,
+                              int32_t* &max1, int32_t &num1,
+                              int32_t* &max2, int32_t &num2,
+                              uint8_t* &I_du, uint8_t* &I_dv,
+                              uint8_t* &I_du_full, uint8_t* &I_dv_full)
 {
     int16_t *I_f1;
     int16_t *I_f2;
 
     int32_t dims_matching[3];
-    memcpy(dims_matching,dims,3*sizeof(int32_t));
+    memcpy(dims_matching, dims, 3*sizeof(int32_t));
 
     // allocate memory for sobel images and filter images
     if (!_param.half_resolution)
@@ -824,13 +826,13 @@ void Matcher::computeFeatures(uint8_t *I,const int32_t* dims,int32_t* &max1,int3
         {
             nms_n_sparse = max(_param.nms_n,10);
         }
-        nonMaximumSuppression(I_f1,I_f2,dims_matching,maxima1,nms_n_sparse);
+        nonMaximumSuppression(I_f1, I_f2, dims_matching, maxima1, nms_n_sparse);
         computeDescriptors(I_du,I_dv,dims_matching[2],maxima1);
     }
 
     // extract dense maxima (2nd pass) via non-maximum suppression
     vector<Matcher::maximum> maxima2;
-    nonMaximumSuppression(I_f1,I_f2,dims_matching,maxima2,_param.nms_n);
+    nonMaximumSuppression(I_f1, I_f2, dims_matching, maxima2, _param.nms_n);
     computeDescriptors(I_du,I_dv,dims_matching[2],maxima2);
 
     // release filter images
@@ -1066,8 +1068,8 @@ inline void Matcher::findMatch(int32_t* m1,const int32_t &i1,int32_t* m2,const i
     int32_t u1       = *(m1+step_size*i1+0);
     int32_t v1       = *(m1+step_size*i1+1);
     int32_t c        = *(m1+step_size*i1+3);
-    __m128i xmm1     = _mm_load_si128((__m128i*)(m1+step_size*i1+4));
-    __m128i xmm2     = _mm_load_si128((__m128i*)(m1+step_size*i1+8));
+    __m128i xmm1     = _mm_load_si128((__m128i*)(m1+step_size*i1+4)); // d1-d4 ( descriptor )
+    __m128i xmm2     = _mm_load_si128((__m128i*)(m1+step_size*i1+8)); // d5-d8 ( descriptor )
 
     float u_min,u_max,v_min,v_max;
 
@@ -1101,11 +1103,12 @@ inline void Matcher::findMatch(int32_t* m1,const int32_t &i1,int32_t* m2,const i
     int32_t v_bin_min = min(max((int32_t)floor(v_min/(float)_param.match_binsize),0),v_bin_num-1);
     int32_t v_bin_max = min(max((int32_t)floor(v_max/(float)_param.match_binsize),0),v_bin_num-1);
 
-    // for all bins of interest do
+    // for all bins of interest from m1
     for (int32_t u_bin=u_bin_min; u_bin<=u_bin_max; u_bin++)
     {
         for (int32_t v_bin=v_bin_min; v_bin<=v_bin_max; v_bin++)
         {
+            // check all maximums in a bin from m2
             int32_t k2_ind = (c*v_bin_num+v_bin)*u_bin_num+u_bin;
             for (vector<int32_t>::const_iterator i2_it=k2[k2_ind].begin(); i2_it!=k2[k2_ind].end(); i2_it++)
             {
@@ -1113,11 +1116,25 @@ inline void Matcher::findMatch(int32_t* m1,const int32_t &i1,int32_t* m2,const i
                 int32_t v2   = *(m2+step_size*(*i2_it)+1);
                 if (u2>=u_min && u2<=u_max && v2>=v_min && v2<=v_max)
                 {
-                    __m128i xmm3 = _mm_load_si128((__m128i*)(m2+step_size*(*i2_it)+4));
-                    __m128i xmm4 = _mm_load_si128((__m128i*)(m2+step_size*(*i2_it)+8));
-                    xmm3 = _mm_sad_epu8 (xmm1,xmm3);
-                    xmm4 = _mm_sad_epu8 (xmm2,xmm4);
-                    xmm4 = _mm_add_epi16(xmm3,xmm4);
+                    __m128i xmm3 = _mm_load_si128((__m128i*)(m2+step_size*(*i2_it)+4)); // d1-d4 ( descriptor )
+                    __m128i xmm4 = _mm_load_si128((__m128i*)(m2+step_size*(*i2_it)+8)); // d5-d8 ( descriptor )
+
+                    // Ref: https://software.intel.com/sites/landingpage/IntrinsicsGuide
+                    // _mm_sad_epu8:
+                    // sum of the absolute differences of packed unsigned 8-bit integers,
+                    // then horizontally sum each consecutive 8 differences to produce 2 unsigned 16-bit integers,
+                    // and pack these unsigned 16-bit integers in the low 16 bits of 64-bit element.
+                    // _mm_add_epi16:
+                    // add packed 16-bit integers
+                    // _mm_extract_epi16(__m128i a, int imm8):
+                    // extract a 16-bit integer from a, selected with imm8, and store the result in the lower
+                    // element of dst.
+                    // dst[15:0] := (a[127:0] >> (imm8[2:0] * 16))[15:0]
+                    // dst[31:16] := 0
+
+                    xmm3 = _mm_sad_epu8 (xmm1,xmm3); // absolute difference between m1 and m2 in d1-d4
+                    xmm4 = _mm_sad_epu8 (xmm2,xmm4); // absolute difference between m1 and m2 in d5-d8
+                    xmm4 = _mm_add_epi16(xmm3,xmm4); // add the differences
                     double cost = (double)(_mm_extract_epi16(xmm4,0)+_mm_extract_epi16(xmm4,4));
 
                     if (u_>=0 && v_>=0)
@@ -1151,7 +1168,7 @@ void Matcher::matching(int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
     // compute number of bins
     int32_t u_bin_num = (int32_t)ceil((float)_dims_c[0]/(float)_param.match_binsize);
     int32_t v_bin_num = (int32_t)ceil((float)_dims_c[1]/(float)_param.match_binsize);
-    int32_t bin_num   = 4*v_bin_num*u_bin_num; // 4 classes
+    int32_t bin_num   = 4*v_bin_num*u_bin_num; // 4 classes( class is specified in nonMaximumSuppression func )
 
     // allocate memory for index vectors (needed for efficient search)
     vector<int32_t> *k1p = new vector<int32_t>[bin_num];
@@ -1165,7 +1182,7 @@ void Matcher::matching(int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
     int32_t u1p,v1p,u2p,v2p,u1c,v1c,u2c,v2c;
 
     double t00,t01,t02,t03,t10,t11,t12,t13,t20,t21,t22,t23;
-    if (Tr_delta)
+    if( Tr_delta )
     {
         t00 = Tr_delta->_val[0][0];
         t01 = Tr_delta->_val[0][1];
@@ -1183,7 +1200,7 @@ void Matcher::matching(int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
 
     /////////////////////////////////////////////////////
     // method: flow
-    if (method==0)
+    if( method == 0 )
     {
         // create position/class bin index vectors
         createIndexVector(m1p,n1p,k1p,u_bin_num,v_bin_num);
@@ -1222,7 +1239,7 @@ void Matcher::matching(int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
         }
     }
     // method: stereo
-    else if (method==1)
+    else if( method == 1 )
     {
         // create position/class bin index vectors
         createIndexVector(m1c,n1c,k1c,u_bin_num,v_bin_num);
@@ -1273,8 +1290,8 @@ void Matcher::matching(int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
         createIndexVector(m1c,n1c,k1c,u_bin_num,v_bin_num);
         createIndexVector(m2c,n2c,k2c,u_bin_num,v_bin_num);
 
-        // for all points do
-        for (i1p=0; i1p<n1p; i1p++)
+        // for all maximum points in previous 1st image do
+        for( i1p = 0; i1p < n1p; i1p++ )
         {
             // coordinates
             u1p = *(m1p+step_size*i1p+0);
@@ -1285,8 +1302,9 @@ void Matcher::matching(int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
             int32_t v_bin = min((int32_t)floor((float)v1p/(float)_param.match_binsize),v_bin_num-1);
             int32_t stat_bin = v_bin*u_bin_num+u_bin;
 
-            // match in circle
-            findMatch(m1p,i1p,m2p,step_size,k2p,u_bin_num,v_bin_num,stat_bin,i2p, 0,false,use_prior);
+            // match in circle, previous 1st frame vs previous 2nd frame
+            findMatch( m1p, i1p, m2p, step_size, k2p, u_bin_num, v_bin_num,
+                       stat_bin, i2p, 0, false, use_prior );
 
             u2p = *(m2p+step_size*i2p+0);
             v2p = *(m2p+step_size*i2p+1);
@@ -1305,31 +1323,44 @@ void Matcher::matching(int32_t *m1p,int32_t *m2p,int32_t *m1c,int32_t *m2c,
                 double u2c_ = _param.f*x2c/z2c+_param.cu;
                 double v2c_ = _param.f*y2c/z2c+_param.cv;
 
+                // match in circle, previous 2nd frame vs current 2nd frame
                 findMatch(m2p,i2p,m2c,step_size,k2c,u_bin_num,v_bin_num,stat_bin,i2c, 1,true ,use_prior,u2c_,v2c_);
             }
             else
             {
+                // match in circle, previous 2nd frame vs current 2nd frame
                 findMatch(m2p,i2p,m2c,step_size,k2c,u_bin_num,v_bin_num,stat_bin,i2c, 1,true ,use_prior);
             }
+
+            // match in circle, current 2nd frame vs current 1st frame
             findMatch(m2c,i2c,m1c,step_size,k1c,u_bin_num,v_bin_num,stat_bin,i1c, 2,false,use_prior);
+
             if (Tr_delta)
             {
+                // match in circle, current 1st frame vs previous 1st frame
                 findMatch(m1c,i1c,m1p,step_size,k1p,u_bin_num,v_bin_num,stat_bin,i1p2,3,true ,use_prior,u1p,v1p);
             }
             else
             {
+                // match in circle, current 1st frame vs previous 1st frame
                 findMatch(m1c,i1c,m1p,step_size,k1p,u_bin_num,v_bin_num,stat_bin,i1p2,3,true ,use_prior);
             }
 
             // circle closure success?
-            if (i1p2==i1p)
+            // multiple findMatch func calls above are for
+            // 1. previous 1st frame vs previous 2nd frame
+            // 2. previous 2nd frame vs current 2nd frame
+            // 3. current 2nd frame vs current 1st frame
+            // 4. current 1st frame vs previous 1st frame
+            if( i1p2 == i1p )
             {
                 // extract coordinates
                 u2c = *(m2c+step_size*i2c+0); v2c = *(m2c+step_size*i2c+1);
                 u1c = *(m1c+step_size*i1c+0); v1c = *(m1c+step_size*i1c+1);
 
                 // if disparities are positive
-                if (u1p>=u2p && u1c>=u2c)
+                if( ( u1p >= u2p )&&
+                    ( u1c >= u2c ) )
                 {
                     // add match
                     p_matched.push_back(Matcher::p_match(u1p,v1p,i1p,u2p,v2p,i2p,

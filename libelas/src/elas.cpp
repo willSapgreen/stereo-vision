@@ -83,22 +83,26 @@ void Elas::process(uint8_t* I1_,uint8_t* I2_,float* D1,float* D2,const int32_t* 
 #ifdef PROFILE
     timer.start("Disparity Planes");
 #endif
-    computeDisparityPlanes(p_support,tri_1);//,0);
-    computeDisparityPlanes(p_support,tri_2);//,1);
+    // TODO: here tri_1 is equal to tri_2!!! Why do we want to do this?
+    computeDisparityPlanes(p_support, tri_1);//,0);
+    computeDisparityPlanes(p_support, tri_2);//,1);
 
 #ifdef PROFILE
     timer.start("Grid");
 #endif
 
     // allocate memory for disparity grid
+    // TODO: replace 2 with the meaningful variable.
+    // '2': disparity range is from 0 to _param.disp_max ( totally _param.disp_max + '1' ) +
+    //      'a space to save the index which is the number of valid disparities at a position'
     int32_t grid_width   = (int32_t)ceil((float)_width/(float)_param.grid_size);
     int32_t grid_height  = (int32_t)ceil((float)_height/(float)_param.grid_size);
-    int32_t grid_dims[3] = {_param.disp_max+2,grid_width,grid_height};
+    int32_t grid_dims[3] = {_param.disp_max+2, grid_width, grid_height};
     int32_t* disparity_grid_1 = (int32_t*)calloc((_param.disp_max+2)*grid_height*grid_width,sizeof(int32_t));
     int32_t* disparity_grid_2 = (int32_t*)calloc((_param.disp_max+2)*grid_height*grid_width,sizeof(int32_t));
 
-    createGrid(p_support,disparity_grid_1,grid_dims,0);
-    createGrid(p_support,disparity_grid_2,grid_dims,1);
+    createGrid(p_support, disparity_grid_1, grid_dims, 0);
+    createGrid(p_support, disparity_grid_2, grid_dims, 1);
 
 #ifdef PROFILE
     timer.start("Matching");
@@ -642,6 +646,9 @@ void Elas::computeDisparityPlanes(vector<support_pt> p_support,vector<triangle> 
         }
 
         // compute matrix A for linear system of right triangle
+        // TODO: Chec if there is potientiall a bug !!!
+        // If p_support is from right image,
+        // " p_support[c1].u-p_support[c1].d " give the u in the left image???
         A.val[0][0] = p_support[c1].u-p_support[c1].d;
         A.val[1][0] = p_support[c2].u-p_support[c2].d;
         A.val[2][0] = p_support[c3].u-p_support[c3].d;
@@ -681,24 +688,26 @@ void Elas::createGrid(vector<support_pt> p_support,int32_t* disparity_grid,int32
     int32_t grid_height = grid_dims[2];
 
     // allocate temporary memory
+    // temp1 and temp2 are 3D matrix, disparity_maximum * grid_height * grid_width
     int32_t* temp1 = (int32_t*)calloc((_param.disp_max+1)*grid_height*grid_width,sizeof(int32_t));
     int32_t* temp2 = (int32_t*)calloc((_param.disp_max+1)*grid_height*grid_width,sizeof(int32_t));
 
     // for all support points do
-    for (vector<support_pt>::size_type i=0; i<p_support.size(); i++)
+    // store all valid disparity range in temp1
+    for( vector<support_pt>::size_type i=0; i<p_support.size(); i++ )
     {
         // compute disparity range to fill for this support point
         int32_t x_curr = p_support[i].u;
         int32_t y_curr = p_support[i].v;
         int32_t d_curr = p_support[i].d;
         int32_t d_min  = max(d_curr-1,0);
-        int32_t d_max  = min(d_curr+1,_param.disp_max);
+        int32_t d_max  = min(d_curr+1, _param.disp_max);
 
         // fill disparity grid helper
-        for (int32_t d=d_min; d<=d_max; d++)
+        for( int32_t d=d_min; d<=d_max; d++ )
         {
             int32_t x;
-            if (!right_image)
+            if( !right_image )
             {
                 x = floor((float)(x_curr/_param.grid_size));
             }
@@ -709,7 +718,7 @@ void Elas::createGrid(vector<support_pt> p_support,int32_t* disparity_grid,int32
             int32_t y = floor((float)y_curr/(float)_param.grid_size);
 
             // point may potentially lay outside (corner points)
-            if (x>=0 && x<grid_width &&y>=0 && y<grid_height)
+            if( x>=0 && x<grid_width &&y>=0 && y<grid_height )
             {
                 int32_t addr = getAddressOffsetGrid(x,y,d,grid_width,_param.disp_max+1);
                 *(temp1+addr) = 1;
@@ -718,6 +727,8 @@ void Elas::createGrid(vector<support_pt> p_support,int32_t* disparity_grid,int32
     }
 
     // diffusion pointers
+    // t,c,b: top, center, bottom ( vertical direction )
+    // l,c,r: left, center, right ( horizontal direction )
     const int32_t* tl = temp1 + (0*grid_width+0)*(_param.disp_max+1);
     const int32_t* tc = temp1 + (0*grid_width+1)*(_param.disp_max+1);
     const int32_t* tr = temp1 + (0*grid_width+2)*(_param.disp_max+1);
@@ -732,24 +743,26 @@ void Elas::createGrid(vector<support_pt> p_support,int32_t* disparity_grid,int32
     int32_t* end_input = temp1 + grid_width*grid_height*(_param.disp_max+1);
 
     // diffuse temporary grid
+    // This loop will go through the whole temp1.
+    // At same time, store the diffused value to temp2.
     for( ; br != end_input; tl++, tc++, tr++, cl++, cc++, cr++, bl++, bc++, br++, result++ )
     {
         *result = *tl | *tc | *tr | *cl | *cc | *cr | *bl | *bc | *br;
     }
 
     // for all grid positions create disparity grid
-    for (int32_t x=0; x<grid_width; x++)
+    for( int32_t x=0; x<grid_width; x++ )
     {
-        for (int32_t y=0; y<grid_height; y++)
+        for( int32_t y=0; y<grid_height; y++ )
         {
             // start with second value (first is reserved for count)
             int32_t curr_ind = 1;
 
             // for all disparities do
-            for (int32_t d=0; d<=_param.disp_max; d++)
+            for( int32_t d=0; d<=_param.disp_max; d++ )
             {
                 // if yes => add this disparity to current cell
-                if (*(temp2+getAddressOffsetGrid(x,y,d,grid_width,_param.disp_max+1))>0)
+                if( *(temp2+getAddressOffsetGrid(x,y,d,grid_width,_param.disp_max+1))>0 )
                 {
                     *(disparity_grid+getAddressOffsetGrid(x,y,curr_ind,grid_width,_param.disp_max+2))=d;
                     curr_ind++;
@@ -818,7 +831,7 @@ inline void Elas::findMatch(int32_t &u,int32_t &v,float &plane_a,float &plane_b,
     }
 
     // compute line start address
-    int32_t  line_offset = 16*_width*max(min(v,_height-3),2);
+    int32_t  line_offset = 16*_width*max(min(v,_height-3),2); // 16: Descriptor::DESCRIPTOR_MM_MALLOC_ALIGN
     uint8_t *I1_line_addr,*I2_line_addr;
     if (!right_image)
     {
@@ -844,22 +857,30 @@ inline void Elas::findMatch(int32_t &u,int32_t &v,float &plane_a,float &plane_b,
     {
         return;
     }
-    // compute disparity, min disparity and max disparity of plane prior
-    int32_t d_plane     = (int32_t)(plane_a*(float)u+plane_b*(float)v+plane_c);
+    // compute disparity, min disparity and max disparity of plane
+    int32_t d_plane     = (int32_t)(plane_a*(float)u+plane_b*(float)v+plane_c); // calculated from plane equation (prior)
     int32_t d_plane_min = max(d_plane-plane_radius,0);
     int32_t d_plane_max = min(d_plane+plane_radius,disp_num-1);
 
-    // get grid pointer
+    // get disparity from disparity grid (posterior, observation)
     int32_t  grid_x    = (int32_t)floor((float)u/(float)_param.grid_size);
     int32_t  grid_y    = (int32_t)floor((float)v/(float)_param.grid_size);
-    uint32_t grid_addr = getAddressOffsetGrid(grid_x,grid_y,0,grid_dims[1],grid_dims[0]);
-    int32_t  num_grid  = *(disparity_grid+grid_addr);
-    int32_t* d_grid    = disparity_grid+grid_addr+1;
+
+    const int32_t DISPARITY_GRID_VALID_DISPARITY_STORE_INDEX = 0;
+    uint32_t grid_addr = getAddressOffsetGrid(grid_x, grid_y, DISPARITY_GRID_VALID_DISPARITY_STORE_INDEX,
+                                              grid_dims[1], grid_dims[0]);
+
+    int32_t  num_grid  = *(disparity_grid+grid_addr); // number of valid disparity values stored in this position
+    int32_t* d_grid    = disparity_grid+grid_addr+1; // obtained from disparity grid ( posterior, observation )
 
     // loop variables
     int32_t d_curr, u_warp, val;
     int32_t min_val = 10000;
     int32_t min_d   = -1;
+
+    // _mm_load_si128(__m128i const* mem_addr ):
+    // load 128-bits of integer data from memory into dst.mem_addr must be aligned on 16-byte bounday
+    // or a general-protection exception may be generated.
     __m128i xmm1    = _mm_load_si128((__m128i*)I1_block_addr);
     __m128i xmm2;
 
@@ -923,21 +944,25 @@ inline void Elas::findMatch(int32_t &u,int32_t &v,float &plane_a,float &plane_b,
     }
 
     // set disparity value
-    if (min_d>=0) *(D+d_addr) = min_d; // MAP value (min neg-Log probability)
-    else          *(D+d_addr) = -1;    // invalid disparity
+    if (min_d>=0)
+    {
+        *(D+d_addr) = min_d; // MAP value (min neg-Log probability)
+    }
+    else
+    {
+        *(D+d_addr) = -1;    // invalid disparity
+    }
 }
 
 //==============================================================================//
 
-// TODO: %2 => more elegantly
-void Elas::computeDisparity(vector<support_pt> p_support,vector<triangle> tri,int32_t* disparity_grid,int32_t *grid_dims,
+// TODO: %2 => more elegantly <- what does it mean?
+void Elas::computeDisparity(vector<support_pt> p_support,vector<triangle> tri,
+                            int32_t* disparity_grid,int32_t *grid_dims,
                             uint8_t* I1_desc,uint8_t* I2_desc,bool right_image,float* D)
 {
     // number of disparities
     const int32_t disp_num  = grid_dims[0]-1;
-
-    // descriptor window_size
-    //int32_t window_size = 2;
 
     // init disparity image to -10
     if (_param.subsampling)
@@ -955,24 +980,29 @@ void Elas::computeDisparity(vector<support_pt> p_support,vector<triangle> tri,in
         }
     }
 
-    // pre-compute prior
+    // TODO: pre-compute prior - Equation(8) in the paper???
     float two_sigma_squared = 2*_param.sigma*_param.sigma;
     int32_t* P = new int32_t[disp_num];
     for (int32_t delta_d=0; delta_d<disp_num; delta_d++)
     {
-        P[delta_d] = (int32_t)((-log(_param.gamma+exp(-delta_d*delta_d/two_sigma_squared))+log(_param.gamma))/_param.beta);
+        //P[delta_d] = (int32_t)((-log(_param.gamma+exp(-delta_d*delta_d/two_sigma_squared))+log(_param.gamma))/_param.beta);
+        // TODO: Equation(8) is different???
+        float tmp = -log(_param.gamma + exp(-delta_d*delta_d/two_sigma_squared)) + log(_param.gamma);
+        P[delta_d] = (int32_t)( tmp / _param.beta );
     }
     int32_t plane_radius = (int32_t)max((float)ceil(_param.sigma*_param.sradius),(float)2.0);
 
-    // loop variables
+    // vertices in the triangle
     int32_t c1, c2, c3;
+
+    // plane_a, plane_b, plane_c represents ax+by+cz=1
+    // plane_d is plane_a of the projected plane in another image
     float plane_a,plane_b,plane_c,plane_d;
 
     // for all triangles do
     for (uint32_t i=0; i<tri.size(); i++)
     {
         // get plane parameters
-        //uint32_t p_i = i*3;
         if (!right_image)
         {
             plane_a = tri[i].t1a;
@@ -1009,6 +1039,7 @@ void Elas::computeDisparity(vector<support_pt> p_support,vector<triangle> tri,in
         }
         float tri_v[3] = {(float)p_support[c1].v, (float)p_support[c2].v, (float)p_support[c3].v};
 
+        // sorting
         for (uint32_t j=0; j<3; j++)
         {
             for (uint32_t k=0; k<j; k++)
@@ -1037,6 +1068,7 @@ void Elas::computeDisparity(vector<support_pt> p_support,vector<triangle> tri,in
 
         // a plane is only valid if itself and its projection
         // into the other image is not too much slanted
+        // TODO: A better approach?
         bool valid = fabs(plane_a)<0.7 && fabs(plane_d)<0.7;
 
         // first part (triangle corner A->B)

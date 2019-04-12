@@ -27,9 +27,9 @@ using namespace std;
 
 Descriptor::Descriptor(uint8_t* I,int32_t width,int32_t height,int32_t bpl,bool half_resolution)
 {
-    _I_desc        = (uint8_t*)_mm_malloc(16*width*height*sizeof(uint8_t),16);
-    uint8_t* I_du  = (uint8_t*)_mm_malloc(bpl*height*sizeof(uint8_t),16);
-    uint8_t* I_dv  = (uint8_t*)_mm_malloc(bpl*height*sizeof(uint8_t),16);
+    _I_desc        = (uint8_t*)_mm_malloc(16*width*height*sizeof(uint8_t), DESCRIPTOR_MM_MALLOC_ALIGN);
+    uint8_t* I_du  = (uint8_t*)_mm_malloc(bpl*height*sizeof(uint8_t), DESCRIPTOR_MM_MALLOC_ALIGN);
+    uint8_t* I_dv  = (uint8_t*)_mm_malloc(bpl*height*sizeof(uint8_t), DESCRIPTOR_MM_MALLOC_ALIGN);
     filter::sobel3x3(I,I_du,I_dv,bpl,height);
     createDescriptor(I_du,I_dv,width,height,bpl,half_resolution);
     _mm_free(I_du);

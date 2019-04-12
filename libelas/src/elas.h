@@ -170,7 +170,7 @@ private:
     {
         int32_t u;
         int32_t v;
-        int32_t d;
+        int32_t d; // disparity
         support_pt(int32_t u,int32_t v,int32_t d):u(u),v(v),d(d){}
     };
 
@@ -199,22 +199,95 @@ private:
                                       int32_t redun_max_dist, int32_t redun_threshold, bool vertical);
     void addCornerSupportPoints(std::vector<support_pt> &p_support);
     inline int16_t computeMatchingDisparity(const int32_t &u,const int32_t &v,uint8_t* I1_desc,uint8_t* I2_desc,const bool &right_image);
+
+    /**
+     * @brief computeSupportMatches
+     * @param I1_desc
+     * @param I2_desc
+     * @return
+     */
     std::vector<support_pt> computeSupportMatches(uint8_t* I1_desc,uint8_t* I2_desc);
 
     // triangulation & grid
     std::vector<triangle> computeDelaunayTriangulation(std::vector<support_pt> p_support,int32_t right_image);
+
+
     //void computeDisparityPlanes (std::vector<support_pt> p_support,std::vector<triangle> &tri,int32_t right_image);
     void computeDisparityPlanes(std::vector<support_pt> p_support,std::vector<triangle> &tri);
+
+    /**
+     * @brief createGrid:
+     *        create the disparity grid
+     * @param p_support: [in] support points
+     * @param disparity_grid: [in/out] the disparity grid, which is a (disp_max+2) * grid_height * grid_width array
+     *                        disparity_grid[u][v][0] represents the number of valid disparity at (u,v)
+     *                        ex. disparity_grid[u][v][0] is 3. It means
+     *                        disparity_grid[u][v][1], disparity_grid[u][v][2], disparity_grid[u][v][3] store valid disparity values
+     * @param grid_dims: [in] grid dimensions
+     * @param right_image: [in] the flag to determine if disparity_grid is for the right image
+     */
     void createGrid(std::vector<support_pt> p_support,int32_t* disparity_grid,int32_t* grid_dims,bool right_image);
 
-    // matching
+    /**
+     * @brief updatePosteriorMinimum
+     * @param I2_block_addr
+     * @param d
+     * @param w
+     * @param xmm1
+     * @param xmm2
+     * @param val
+     * @param min_val
+     * @param min_d
+     */
     inline void updatePosteriorMinimum(__m128i* I2_block_addr,const int32_t &d,const int32_t &w,
                                         const __m128i &xmm1,__m128i &xmm2,int32_t &val,int32_t &min_val,int32_t &min_d);
+
+    /**
+     * @brief updatePosteriorMinimum
+     * @param I2_block_addr
+     * @param d
+     * @param xmm1
+     * @param xmm2
+     * @param val
+     * @param min_val
+     * @param min_d
+     */
     inline void updatePosteriorMinimum(__m128i* I2_block_addr,const int32_t &d,
                                         const __m128i &xmm1,__m128i &xmm2,int32_t &val,int32_t &min_val,int32_t &min_d);
+
+    /**
+     * @brief findMatch:
+     *        find the best match and store the disparity value in D based on plane ( prior ) and disparity grid ( posterior )
+     * @param u: [in] horizontal location
+     * @param v: [in] vertical location
+     * @param plane_a: [in] ax+by+cz=d
+     * @param plane_b: [in] ax+by+cz=d
+     * @param plane_c: [in] ax+by+cz=d
+     * @param disparity_grid: [in] disparity grid
+     * @param grid_dims: [in] disparity grid dimension
+     * @param I1_desc: [in] I1 descriptor map
+     * @param I2_desc: [in] I2 descriptor map
+     * @param P: [in] prior
+     * @param plane_radius: [in] plane radius
+     * @param valid: [in] flag to determine if the input plane is valid or not
+     * @param right_image: [in] flag to determine if the input (u,v) is in right image or not
+     * @param D : [in/out] disparity map which stores the disparity value at this position. -1 indicates invalid disparity
+     */
     inline void findMatch(int32_t &u,int32_t &v,float &plane_a,float &plane_b,float &plane_c,
                           int32_t* disparity_grid,int32_t *grid_dims,uint8_t* I1_desc,uint8_t* I2_desc,
                            int32_t *P,int32_t &plane_radius,bool &valid,bool &right_image,float* D);
+
+    /**
+     * @brief computeDisparity
+     * @param p_support
+     * @param tri
+     * @param disparity_grid
+     * @param grid_dims
+     * @param I1_desc
+     * @param I2_desc
+     * @param right_image
+     * @param D : [in/out] disparity map
+     */
     void computeDisparity(std::vector<support_pt> p_support,std::vector<triangle> tri,
                           int32_t* disparity_grid,int32_t* grid_dims,
                           uint8_t* I1_desc,uint8_t* I2_desc,bool right_image,float* D);
