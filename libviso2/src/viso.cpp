@@ -69,12 +69,12 @@ bool VisualOdometry::updateMotion()
 Matrix VisualOdometry::transformationVectorToMatrix(std::vector<double> tr)
 {
     // extract parameters
-    double rx = tr[0];
-    double ry = tr[1];
-    double rz = tr[2];
-    double tx = tr[3];
-    double ty = tr[4];
-    double tz = tr[5];
+    double rx = tr[0]; // pitch
+    double ry = tr[1]; // yaw
+    double rz = tr[2]; // roll
+    double tx = tr[3]; // right
+    double ty = tr[4]; // up
+    double tz = tr[5]; // forward
 
     // precompute sine/cosine
     double sx = sin(rx);
@@ -85,12 +85,44 @@ Matrix VisualOdometry::transformationVectorToMatrix(std::vector<double> tr)
     double cz = cos(rz);
 
     // compute transformation
+    // Rx(pitch) * Ry(yaw) * Rz(roll)
     Matrix Tr(4,4);
     Tr._val[0][0] = +cy*cz;          Tr._val[0][1] = -cy*sz;          Tr._val[0][2] = +sy;    Tr._val[0][3] = tx;
     Tr._val[1][0] = +sx*sy*cz+cx*sz; Tr._val[1][1] = -sx*sy*sz+cx*cz; Tr._val[1][2] = -sx*cy; Tr._val[1][3] = ty;
     Tr._val[2][0] = -cx*sy*cz+sx*sz; Tr._val[2][1] = +cx*sy*sz+sx*cz; Tr._val[2][2] = +cx*cy; Tr._val[2][3] = tz;
     Tr._val[3][0] = 0;               Tr._val[3][1] = 0;               Tr._val[3][2] = 0;      Tr._val[3][3] = 1;
     return Tr;
+}
+
+//==============================================================================//
+
+bool VisualOdometry::inverseTransformationVector(const std::vector<double> &tr, std::vector<double> &tr_inv)
+{
+    Matrix tr_matrix = transformationVectorToMatrix( tr );
+    Matrix tr_matrix_inv = Matrix::eye(4);
+    bool is_inverse_work = true;
+
+    if( !tr_matrix_inv.solve( tr_matrix ) )
+    {
+        is_inverse_work = false;
+    }
+    else
+    {
+        // roll
+        tr_inv[2] = atan2( -tr_matrix_inv._val[0][1], tr_matrix_inv._val[0][0] );
+
+        // pitch
+        tr_inv[0] = atan2( -tr_matrix_inv._val[1][2], tr_matrix_inv._val[2][2] );
+
+        // yaw
+        tr_inv[1] = atan2( tr_matrix_inv._val[0][2],\
+                    sqrt( tr_matrix_inv._val[0][0] * tr_matrix_inv._val[0][0] + tr_matrix_inv._val[0][1] * tr_matrix_inv._val[0][1] ) );
+
+        tr_inv[3] = tr_matrix_inv._val[0][3];
+        tr_inv[4] = tr_matrix_inv._val[1][3];
+        tr_inv[5] = tr_matrix_inv._val[2][3];
+    }
+    return is_inverse_work;
 }
 
 //==============================================================================//

@@ -73,31 +73,58 @@ public:
     // deconstructor
     ~VisualOdometry();
 
-    // call this function instead of the specialized ones, if you already have
-    // feature matches, and simply want to compute visual odometry from them, without
-    // using the internal matching functions.
-    bool process (std::vector<Matcher::p_match> p_matched)
+    /**
+     * @brief process:
+     *        Process p_matched points to estimate transformation
+     * @param p_matched: matched points
+     * @return
+     *        True if transformaiton calculation works.
+     */
+    bool process(std::vector<Matcher::p_match> p_matched)
     {
         _p_matched = p_matched;
         return updateMotion();
     }
 
-    // returns transformation from previous to current coordinates as a 4x4
-    // homogeneous transformation matrix Tr_delta, with the following semantics:
-    // p_t = Tr_delta * p_ {t-1} takes a point in the camera coordinate system
-    // at time t_1 and maps it to the camera coordinate system at time t.
-    // note: getDeltaMotion() returns the last transformation even when process()
-    // has failed. this is useful if you wish to linearly extrapolate occasional
-    // frames for which no correspondences have been found
+    /**
+     * @brief getDeltaMotion:
+     * Get the latest delta transformation.
+     * Note: getDeltaMotion() returns the last transformation even when process()
+     * has failed.
+     * @return
+     * the latest delta transformation.
+     */
     Matrix getDeltaMotion() const { return _Tr_delta; }
 
+    /**
+     * @brief calculateRollPitchYawFromTransformation:
+     *        Calculate roll, pitch, and yaw from rotation part in transformation
+     * @param roll [in/out]: delta roll angle ( radian )
+     * @param pitch [in/out]: delta pitch angle ( radian )
+     * @param yaw [in/out]: delta yaw angle ( radian )
+     */
     void calculateRollPitchYawFromTransformation( double& roll, double& pitch, double& yaw ) const;
 
+    /**
+     * @brief calculateVelocityFromTransformation:
+     *        Calculate delta velocity from translation part in transformation
+     * @param velocity [in/out]: velocity ( meter )
+     */
     void calculateVelocityFromTransformation( double& velocity ) const;
 
+    /**
+     * @brief calculateAltitudeFromTransformation:
+     *        Calculate delta altitude from translation part in transformation
+     * @param altitude [in/out]: delta altitude ( meter )
+     */
     void calculateAltitudeFromTransformation( double& altitude ) const;
 
-    // returns previous to current feature matches from internal matcher
+    /**
+     * @brief  getMatches:
+     *         Get matched points ( previous to current feature matches from internal matcher )
+     * @return
+     *         matched points
+     */
     std::vector<Matcher::p_match> getMatches() { return _matcher->getMatches(); }
 
     // returns the number of successfully matched points, after bucketing
@@ -128,55 +155,84 @@ protected:
 
   /**
    * @brief updateMotion
-   * Kalman Filter Predict translational and rotational velocities,
-   * [Vx, Vy, Vz, Wx, Wy, Wz]
-   * and the transformation matrix(4x4).
+   *        Calculate delta rotational and translational movement
+   *        [rx, ry, rz, tx, ty, tz]
+   *        And then construct transformation matrix(4x4).
    *
    * @return
-   * True if valid.
+   *         True if valid.
    */
   bool updateMotion();
 
   /**
-   * @brief transformationVectorToMatrix
-   * Calculate the transformation matrix from translational/rotational velocities.
+   * @brief transformationVectorToMatrix:
+   *        Calculate the transformation matrix from translational/rotational velocities.
    *
-   * @param tr
-   * [Vx, Vy, Vz, Wx, Wy, Wz]: 6x1
-   *
+   * @param tr: 6x1 [rx, ry, rz, tx, ty, tz]
    * @return
-   * [R | T]: 4x4 transformation matrix from previous frame to current frame.
+   *         4x4 transformation matrix
+   *
+   * Ref: http://www.songho.ca/opengl/gl_anglestoaxes.html
    */
   Matrix transformationVectorToMatrix(std::vector<double> tr);
 
-  // compute motion from previous to current coordinate system
-  // if motion could not be computed, resulting vector will be of size 0
+  bool inverseTransformationVector( const std::vector<double>& tr, std::vector<double>& tr_inv );
+
+  /**
+   * virtual Function - For implementation detail, please refer to viso_stereo.h
+   * @brief estimateMotion
+   * @param p_matched
+   * @return
+   */
   virtual std::vector<double> estimateMotion(std::vector<Matcher::p_match> p_matched) = 0;
   
   // get random and unique sample of num numbers from 1:N
   std::vector<int32_t> getRandomSample(int32_t N,int32_t num);
 
-  /*
+  /* Delta transformation.
    * 4x4 matrix
-   * R T
-   * 0 1
+   * |R T|
+   * |0 1|
    * R: 3x3
    * T: 3x1
+   *
+   * This transformation( _Tr_delta ) is vehicle transformation from time K to time K+1.
+   * The transformation is wrt. the time K coordinate. ( passive transformation )
    */
-  Matrix                         _Tr_delta;   // transformation (previous -> current frame)
+  Matrix                         _Tr_delta;
 
 
-  bool                           _Tr_valid;   // motion estimate exists?
+  bool                           _Tr_valid;   // flag to determine if motion estimate exists
   Matcher*                       _matcher;    // feature matcher
   std::vector<int32_t>           _inliers;    // inlier set
-  double*                        _J;          // jacobian
-  double*                        _p_observe;  // observed 2d points
-  double*                        _p_predict;  // predicted 2d points
-  std::vector<Matcher::p_match>  _p_matched;  // feature point matches
+
+  /**
+   * Jacobian of residual function.
+   * Residual function is
+   * ( predicted_u - observed_u ) and ( predicted_v - observed_v )
+   * Similar to " SVO: Fast Semi-Direct Monocular Visual Odometry "
+   * In the SVO paper, the residual function is based on the intensity difference.
+   * Here is based on the distance difference.
+   */
+  double*                        _J;
+
+  // Observed 2D points
+  // 4 * N points where N is determined by number of measurments each time
+  // 4: u1 v1 u2 v2
+  double*                        _p_observe;
+
+  // Predicted 2D points
+  // 4 * N points where N is determined by number of measurments each time
+  // 4: u1 v1 u2 v2
+  double*                        _p_predict;
+
+  // feature point matches
+  std::vector<Matcher::p_match>  _p_matched;
   
 private:
   
-  parameters                    _param;     // common parameters
+  // common parameters
+  parameters                    _param;
 
 };
 

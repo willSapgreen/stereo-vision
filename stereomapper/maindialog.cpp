@@ -17,6 +17,7 @@
 #if DEBUG_SHOW_GNSS_INS_RESULT
     int GNSS_INS_COUNT = 0;
 #endif
+
 MainDialog::MainDialog(QWidget *parent) :
     QDialog(parent),
     _ui(new Ui::MainDialog),
@@ -43,7 +44,7 @@ MainDialog::MainDialog(QWidget *parent) :
     // connect to the objects for communication.
     QObject::connect(_calib, SIGNAL(newCalibrationData()), this, SLOT( onNewCalibrationData() ) );
     QObject::connect(_stereo_image,SIGNAL(newStereoImageArrived()), this, SLOT(onNewStereoImageArrived()));
-    QObject::connect(_gps_inertial_data, SIGNAL(newGPSInertialDataArrived()), this, SLOT(onNewGPSInertialDataArrived()));
+    QObject::connect(_gps_inertial_data, SIGNAL(newGPSInertialDataArrived()), this, SLOT(onNewGNSSInertialDataArrived()));
     QObject::connect(_read_thread, SIGNAL(playbackDataFinished()), this, SLOT(onPlaybackDataFinished()));
 
     _frame_index = 0;
@@ -532,6 +533,7 @@ void MainDialog::onNewHomographyArrived()
         double delta_altitude;
         _visual_odom_thread->getVisualOdomStatus( delta_roll, delta_pitch, delta_yaw,
                                                   delta_velocity, delta_altitude );
+
         _heading_filter->UpdateHeading( delta_yaw );
 
         // Calculate the delta_north_mov, delta_east_mov, delta_down_mov
@@ -608,7 +610,7 @@ void MainDialog::onNewDisparityMapArrived()
 
 //==============================================================================//
 
-void MainDialog::onNewGPSInertialDataArrived()
+void MainDialog::onNewGNSSInertialDataArrived()
 {
     // Fetch the data.
     GPSInertialDataFormat data = _gps_inertial_data->getData();

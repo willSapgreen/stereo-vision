@@ -117,7 +117,7 @@ vector<double> VisualOdometryStereo::estimateMotion(vector<Matcher::p_match> p_m
         // Assume the camera coordinate is located at the left camera.( different from lec-stereo-3drecon.pdf )
 
         // To calculate X:
-        // xL/f = X/Z | xR/f = (X - b) / Z => X = b(xL)/(xL-xR)
+        // xL/f = X/Z and xR/f = (X - b) / Z => X = b(xL)/(xL-xR)
         // where xL is (u - cu) and (xL-xR) is d ( disparity )
         // Notice that focal length (f) is crossed out.
         // And Z is fb/d.
@@ -139,9 +139,10 @@ vector<double> VisualOdometryStereo::estimateMotion(vector<Matcher::p_match> p_m
     // clear parameter vector
     _inliers.clear();
 
-    // initial RANSAC estimate
+    // RANSAC( Random sample consensus ) + Iterated Gauss-Newton algorithm
     for(int32_t k = 0; k < _param.ransac_iters; k++)
     {
+        // random sampling: RANSAC
         // draw random sample set
         vector<int32_t> active = getRandomSample(N,3);
 
@@ -154,9 +155,11 @@ vector<double> VisualOdometryStereo::estimateMotion(vector<Matcher::p_match> p_m
         // minimize reprojection errors
         VisualOdometryStereo::result result = UPDATED;
         int32_t iter=0;
+
+        // loop: iterated part of Iterated Gauss-Newton
+        //       iterate tr_delta_curr
         while(result==UPDATED)
         {
-            // Kalman Filter: time update(prediction) and measurement update(correction)
             result = updateParameters(p_matched, active, tr_delta_curr, 1, 1e-6);
             if(iter++ > 20 || result==CONVERGED)
             {
@@ -164,7 +167,9 @@ vector<double> VisualOdometryStereo::estimateMotion(vector<Matcher::p_match> p_m
             }
         }
 
-        // overwrite best parameters if we have more inliers
+        // overwrite best parameters
+        // 1. iteration result succeeds AND
+        // 2. this iteration has more inliers
         if(result!=FAILED)
         {
             vector<int32_t> inliers_curr = getInlier(p_matched,tr_delta_curr);
@@ -211,9 +216,15 @@ vector<double> VisualOdometryStereo::estimateMotion(vector<Matcher::p_match> p_m
     delete[] _p_observe;
     delete[] _p_residual;
 
-    // parameter estimate succeeded?
-    if (success) return tr_delta;
-    else         return vector<double>();
+    // parameter estimate succeeded.
+    if (success)
+    {
+        return tr_delta;
+    }
+    else
+    {
+        return vector<double>();
+    }
 }
 
 //==============================================================================//
@@ -257,19 +268,25 @@ VisualOdometryStereo::result VisualOdometryStereo::updateParameters(vector<Match
 
     // extract observations and compute predictions
     computeObservations(p_matched,active);
+
+    // derivate the residual equation and the Jacobian of the residual equation
     computeResidualsAndJacobian(tr,active);
 
-    // init
+    // To estimate the best transformation( Maximum Likelihood Estimation ),
+    // we derivate the residual equation ( which is Jacobian form ),
+    // and set it to zero.
+    // We obtain
+    // transpose(_J) * _J * transformation = -transpose(_J) * residual
+    // So A is transpose(_J) * _J
+    //    B is -transpose(_J) * residual
     Matrix A(6,6);
     Matrix B(6,1);
-
-    // fill matrices A and B
-    for (int32_t m=0; m<6; m++)
+    for (int32_t m=0; m<6; m++) // 6: number of states
     {
         for (int32_t n=0; n<6; n++)
         {
             double a = 0;
-            for (int32_t i=0; i<4*(int32_t)active.size(); i++)
+            for (int32_t i=0; i<4*(int32_t)active.size(); i++) // 4: u1c, v1c, u2c, v2c
             {
                 a += _J[i*6+m]*_J[i*6+n];
             }
@@ -284,13 +301,14 @@ VisualOdometryStereo::result VisualOdometryStereo::updateParameters(vector<Match
     }
 
     // perform elimination
-    if (B.solve(A)) // Ax=B, find x
+    if( B.solve(A) )
     {
         bool converged = true;
         for (int32_t m=0; m<6; m++)
         {
-            tr[m] += step_size*B._val[m][0];
-            if (fabs(B._val[m][0])>eps)
+            // update the input tr ( states )
+            tr[m] += step_size * B._val[m][0];
+            if (fabs(B._val[m][0]) > eps )
             {
                 converged = false;
             }
@@ -331,8 +349,11 @@ void VisualOdometryStereo::computeResidualsAndJacobian(vector<double> &tr,vector
     double cy = cos(ry); double sz = sin(rz); double cz = cos(rz);
 
     // compute rotation matrix and derivatives
-    // Based on the paper,
-    // Rotation matrix = Rz * Rx * Ry
+    // In the paper, the authors mention
+    // the rotation matrix = Rz(roll) * Rx(pitch) * Ry(yaw)
+    // But the implementation here is Rx(pitch) * Ry(yaw) * Rz(roll)
+    // Ref: http://www.songho.ca/opengl/gl_anglestoaxes.html
+    //      In this reference, the rotation is passive transformation.
     double r00    = +cy*cz;          double r01    = -cy*sz;          double r02    = +sy;
     double r10    = +sx*sy*cz+cx*sz; double r11    = -sx*sy*sz+cx*cz; double r12    = -sx*cy;
     double r20    = -cx*sy*cz+sx*sz; double r21    = +cx*sy*sz+sx*cz; double r22    = +cx*cy;
@@ -351,10 +372,16 @@ void VisualOdometryStereo::computeResidualsAndJacobian(vector<double> &tr,vector
     double rdrz10 = -sx*sy*sz+cx*cz; double rdrz11 = -sx*sy*cz-cx*sz;
     double rdrz20 = +cx*sy*sz+sx*cz; double rdrz21 = +cx*sy*cz-sx*sz;
 
-    // loop variables
-    double X1p,Y1p,Z1p; // 3D position in previous left image
-    double X1c,Y1c,Z1c,X2c; // 3D position in current left and right images
-    double X1cd,Y1cd,Z1cd; // d: partial derivative
+    // 3D position in previous left image
+    double X1p,Y1p,Z1p;
+
+    // 3D position in current left and right images
+    // Because processing rectified stereo images,
+    // Y2c is equal to Y1c and Z2c is equal to Z1c
+    double X1c,Y1c,Z1c,X2c;
+
+    // d: partial derivative
+    double X1cd,Y1cd,Z1cd;
 
     // for all observations do
     for (int32_t i=0; i<(int32_t)active.size(); i++)
@@ -365,14 +392,25 @@ void VisualOdometryStereo::computeResidualsAndJacobian(vector<double> &tr,vector
         Z1p = _Z[active[i]];
 
         // compute 3d point in current left coordinate system
-        // Pos_c = Trans * Pos_p
+        // Pos_c = vehicle_delta_transformation * Pos_p (1)
         // where Pos_c and Pos_p is 4x1 homogenerous
         // Trans is 4x4
+        // Because vehicle_delta_transformation is a "rotation of axes" transformation,
+        // ( passive transformation ),
+        // (1) is applied to both vehicle( the coordinate ) and 3D points.
+        //
+        // Comparison of active and passive transformations"
+        // Ref: https://en.wikipedia.org/wiki/Active_and_passive_transformation
+        //      https://en.wikipedia.org/wiki/Rotation_matrix
+        //      https://en.wikipedia.org/wiki/Rotation_of_axes : Example 2
+        //      https://www-robotics.jpl.nasa.gov/publications/Mark_Maimone/rob-06-0081.R4.pdf : Equation (14)
         X1c = r00*X1p+r01*Y1p+r02*Z1p+tx;
         Y1c = r10*X1p+r11*Y1p+r12*Z1p+ty;
         Z1c = r20*X1p+r21*Y1p+r22*Z1p+tz;
 
-        // weighting???
+        // Weight:
+        // In the left image,
+        // further away from cu, lower weight.
         double weight = 1.0;
         if (_param.reweighting)
         {
@@ -384,7 +422,11 @@ void VisualOdometryStereo::computeResidualsAndJacobian(vector<double> &tr,vector
 
         // for all paramters do
         // 6: because there are 6 states in Kalman Filter, rx,ry,rz,tx,ty,tz.
-        // Therefore Jacobian of tr has 6 derivatives wrt. rx,ry,rz,tx,ty,tz.
+        // Again, transition matrix is
+        // |R|T|
+        // |0|1|
+        // Each case below is a part of
+        // Jacobian of transition matrix wrt. rx,ry,rz,tx,ty,tz.
         for (int32_t j=0; j<6; j++)
         {
             // derivatives of 3d pt. in curr. left coordinates wrt. param j
@@ -413,20 +455,26 @@ void VisualOdometryStereo::computeResidualsAndJacobian(vector<double> &tr,vector
                 case 5: X1cd = 0; Y1cd = 0; Z1cd = 1; break;
             }
 
-            // set jacobian entries (project via K)???
+            // Here we calculate Jacobian of measurement function wrt. rx,ry,rz,tx,ty,tz.
+            // In the pinhole camera model,
+            // the point in the image frame is
+            // u = f * Xc/Zc + cu AND v = f * Yc/Zc + cv
+            // Therefore the derivation of Proj is
+            // f * deri(X/Z) + derivation(cu)
+            // where deri(X/Z) is equal to ( deri(X)*Z - deri(Z)*X ) / (Z^2)
+            //       deri(cu) is 0, cu is a constant
             _J[(4*i+0)*6+j] = weight * _param.calib.f*(X1cd*Z1c-X1c*Z1cd)/(Z1c*Z1c); // left u'
             _J[(4*i+1)*6+j] = weight * _param.calib.f*(Y1cd*Z1c-Y1c*Z1cd)/(Z1c*Z1c); // left v'
-            _J[(4*i+2)*6+j] = weight * _param.calib.f*(X1cd*Z1c-X2c*Z1cd)/(Z1c*Z1c); // right u'
-            _J[(4*i+3)*6+j] = weight * _param.calib.f*(Y1cd*Z1c-Y1c*Z1cd)/(Z1c*Z1c); // right v'
+            _J[(4*i+2)*6+j] = weight * _param.calib.f*(X1cd*Z1c-X2c*Z1cd)/(Z1c*Z1c); // right u' // Should we use X2cd instead???
+            _J[(4*i+3)*6+j] = _J[(4*i+1)*6+j]; //weight * _param.calib.f*(Y1cd*Z1c-Y1c*Z1cd)/(Z1c*Z1c); // right v'
         }
 
-        // set prediction (project via K)
-        // K: intrinsic matrix
-        // x = f * X/Z + cu
-        _p_predict[4*i+0] = _param.calib.f * X1c / Z1c + _param.calib.cu; // left u
-        _p_predict[4*i+1] = _param.calib.f * Y1c / Z1c + _param.calib.cv; // left v
-        _p_predict[4*i+2] = _param.calib.f * X2c / Z1c + _param.calib.cu; // right u
-        _p_predict[4*i+3] = _param.calib.f * Y1c / Z1c + _param.calib.cv; // right v
+        // u = f * X/Z + cu
+        // v = f * Y/Z + cv
+        _p_predict[4*i+0] = _param.calib.f * X1c / Z1c + _param.calib.cu; // current left u
+        _p_predict[4*i+1] = _param.calib.f * Y1c / Z1c + _param.calib.cv; // current left v
+        _p_predict[4*i+2] = _param.calib.f * X2c / Z1c + _param.calib.cu; // current right u
+        _p_predict[4*i+3] = _p_predict[4*i+1]; //_param.calib.f * Y1c / Z1c + _param.calib.cv; // current right v
 
         // set residuals
         _p_residual[4*i+0] = weight*(_p_observe[4*i+0]-_p_predict[4*i+0]);

@@ -96,7 +96,7 @@ private slots:
     void onNewHomographyArrived();
 
     void onNewDisparityMapArrived();
-    void onNewGPSInertialDataArrived();
+    void onNewGNSSInertialDataArrived();
     void onNewCalibrationData();
     void onPlaybackDataFinished();
 

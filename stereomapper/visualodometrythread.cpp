@@ -100,7 +100,7 @@ void VisualOdometryThread::run()
 
         _visualOdomStereo->process(_simg->I1, _simg->I2, dim, false);
         Matrix H_Delta_inv = Matrix::eye(4);
-        Matrix H_Delta = _visualOdomStereo->getDeltaMotion();
+        Matrix H_Delta = _visualOdomStereo->getDeltaMotion(); // the vehicle motion ( passive transformation )
         _H_Delta = H_Delta; // Because Matrix::solve will change Matrix's element.
         _visualOdomStereo->calculateRollPitchYawFromTransformation( _delta_roll, _delta_pitch, _delta_yaw );
         _visualOdomStereo->calculateVelocityFromTransformation( _delta_vel );
@@ -123,11 +123,14 @@ void VisualOdometryThread::run()
 
         if (H_Delta_inv.solve(H_Delta))
         {
-            // Why not _H_total = H_Delta_inv * _H_total
-            // Because
-            // 1. we apply the transformation on the local coordinate.
-            // 2. OpenGL uses post-multiplication order for a series of transformation operations.
-            // Detail: http://web.cse.ohio-state.edu/~wang.3602/courses/cse5542-2013-spring/6-Transformation_II.pdf
+            /*
+             * H_Delta is the vehicle transformation ( passive transformation )
+             * from time_k-1 to time_k ( the current coordinate )
+             * Therefore, to calculate _H_total ( the transformation from time_k to time_0 )
+             * Inverse operation is applied to calculate H_Delta_inv.
+             * H_Delta_inv transforms the 3D point from time_k to time_k-1
+             * accmulated transformation _H_total transforms the 3D point from time_k-1 to time_0
+             */
             _H_total = _H_total * H_Delta_inv;
             _picked = false;
         }   

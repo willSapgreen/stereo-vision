@@ -1,7 +1,5 @@
 #include "headingfilter.h"
 
-
-
 HeadingFilter::HeadingFilter()
 {
 

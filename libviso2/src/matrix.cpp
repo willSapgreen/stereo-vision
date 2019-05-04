@@ -642,10 +642,9 @@ FLOAT Matrix::det()
 
 //==============================================================================//
 
-
-// TODO:
-// &M's element will be changed( Line 733 and Line 734 ) even with const
-// Fix it.
+// &M's element will be changed even with const:
+// for (l=0;l<_m;l++) A._val[ll][l] -= A._val[icol][l]*dum;
+// for (l=0;l<_n;l++) B._val[ll][l] -= B._val[icol][l]*dum;
 bool Matrix::solve(const Matrix &M, FLOAT eps)
 {
     // substitutes

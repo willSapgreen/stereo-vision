@@ -74,9 +74,19 @@ private:
 
     /**
      * @brief estimateMotion
-     *        calculate the motion based on passed matched points
+     *        calculate the motion based on passed matched points, based on
+     *        RANSAC and Iterated Gauss-Newton algorithms.
+     *        RANSAC( Random sample consensus )
+     *        Ref: http://www.cse.psu.edu/~rtc12/CSE486/lecture15.pdf
+     *             http://www.cse.yorku.ca/~kosta/CompVis_Notes/ransac.pdf
+     *
+     *        Iterated Gauss-Newton
+     *        Ref: https://see.stanford.edu/materials/lsoeldsee263/07-ls-reg.pdf
+     *             SVO: Fast Semi-Direct Monocular Visual Odometry
      * @param p_matched: [in] matched points
-     * @return motion stored in std::vector format
+     * @return
+     *         Delta rotaitons and translations from time_K to time_K+1 wrt. time_K coordinate
+     *         [rx, ry, rz, tx, ty, tz]
      */
     std::vector<double>  estimateMotion (std::vector<Matcher::p_match> p_matched);
 
@@ -84,20 +94,24 @@ private:
 
     /**
      * @brief updateParameters
-     *        execute Kalman Filter time and measurement update
-     *        to calculate the motion(tr)
+     *        Apply Iterated Gauss-Newton algorithm ( maximum likelihood estimate ) to estimate delta transformation.
+     *
      * @param p_matched: [in] matched points
      * @param active: [in] the indices of the matched points used in Kalman Filter
-     * @param tr: [in/out] the estimated motion which will be updated based on active matched points
+     * @param tr: [in/out] the estimated motion which will be estimated based on active matched points
      * @param step_size
      * @param eps
-     * @return the Kalman filter process result
+     * @return the process result
+     *
+     * Ref: 1. Christian Forster, Matia Pizzoli, Davide Scaramuzza -
+     *        "SVO: Fast Semi-Direct Monocular Visual Odometry"
+     *      2. lucas-kanade.20.years.on.a.unifying.framework.part.1
      */
     result updateParameters(std::vector<Matcher::p_match> &p_matched,std::vector<int32_t> &active,std::vector<double> &tr,double step_size,double eps);
 
     /**
      * @brief computeObservations:
-     *        construct the measurement(observations) matrix
+     *        Construct the measurement(observations) matrix
      *
      * @param p_matched: [in] matched feature points
      * @param active: [in] random selected indices in matched feature points
@@ -106,12 +120,26 @@ private:
 
     /**
      * @brief computeResidualsAndJacobian:
-     *        compute residual and Jacobian matrix of transformation matrix
+     *        Compute residual and its derivative matrices.
+     *        residual matrix: the distance difference between the observation and prediction 2D points
+     *        derivative matrix: the Jacobian of residual matrix
+     *
+     *        State model ( nonlinear ):
      *        Pc = Tr * Pp
-     *        where Pc is the current 3D position in homogenerous coordinate. (4x1)
-     *              Tr is the transofmration matrix |R|T|
-     *                                              |0|1|. (4x4)
-     *              Pp is the previous 3D position in homogenerous coordinate. (4x1)
+     *        where Pc is the current 3D position in camera homogenerous coordinate. (4x1)
+     *              Tr is the transition matrix |R|T|
+     *                                          |0|1|. (4x4)
+     *              Pp is the previous 3D position in camera homogenerous coordinate. (4x1)
+     *
+     *        Measurement model ( nonlinear ):
+     *        pc = Proj( Pc )
+     *        where pc is the current 2D position in image coordinate. (2x1)
+     *              pc is (u,v)
+     *              Proj is the measurement function
+     *              Pc is the 3D position in camera coordinate. (3x1)
+     *              Pc is (X,Y,Z)
+     *              u = fx * X/Z + cu
+     *              v = fy * Y/Z + cv
      * @param tr: [in] transformation(motion) matrix
      * @param active: [in] random selected indices in mathced feature points
      */
@@ -120,11 +148,13 @@ private:
 
     std::vector<int32_t> getInlier(std::vector<Matcher::p_match> &p_matched,std::vector<double> &tr);
 
-    // 3d points
+    // 3d points in previous left frame
     double* _X;
     double* _Y;
     double* _Z;
-    double* _p_residual; // residuals (p_residual=p_observe-p_predict)
+
+    // innovation ( pre-fit residuals ): p_residual = p_observe - p_predict
+    double* _p_residual;
 
     // parameters
     parameters _param;

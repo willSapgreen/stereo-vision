@@ -49,9 +49,7 @@ private:
     VisualOdometryStereo* _visualOdomStereo;
     StereoImage::simage*  _simg;
     CalibIOKITTI*         _calib;
-    //Matcher                      *matcher;
 
-    //std::vector<Matcher::p_match>   matches;
     std::vector<bool>               _inliers;
     timeval                         _time_prev;
     timeval                         _time_curr;
@@ -60,11 +58,19 @@ private:
     bool                            _picked;
 
 
-    // The latest( accmulated ) transformation matrix.
-    // current_transformation = previous_transformation * new_delta_transformation
+    /**
+     * @brief _H_total
+     * The transformation which project the point in the current coordinate
+     * to the first coordinate.
+     *
+     * Ex.
+     * P_1 = _H_total * P_cur
+     * P_cur is the position of the 3D point wrt. the current coordinate.
+     * P_1 is the position of the same 3D point wrt. the first coordinate.
+     */
     Matrix _H_total;
 
-    // The latest delta transformation matrix.
+    // The latest vehicle delta transformation matrix.
     Matrix _H_Delta;
 
     // Statuses in the NED coordinate extracted from the latest delta transformation.
