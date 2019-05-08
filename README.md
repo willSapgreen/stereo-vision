@@ -11,7 +11,9 @@ https://youtu.be/FdMsZ2LuRbg
 *GPX Result*
 
 * KITTI Road 2011_09_26_drive_0029
+![GroundTruth(blue) vs VisualOdom(red)](https://github.com/willSapgreen/stereo-vision/blob/master/result/KITTI_Road_2011_09_26_drive_0029.jpg)
 
+GroundTruth(blue) AND VisualOdom(red)
 
 ### What is this repository for? ###
 
