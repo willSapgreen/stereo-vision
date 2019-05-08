@@ -2,8 +2,16 @@
 
 This README would normally document whatever steps are necessary to get your application up and running.
 
-### YouTube video ###
+### Performance Result ###
+
+*YouTube Video*
+
 https://youtu.be/FdMsZ2LuRbg
+
+*GPX Result*
+
+* KITTI Road 2011_09_26_drive_0029
+
 
 ### What is this repository for? ###
 
