@@ -1,7 +1,12 @@
 #ifndef VIEW3D_H
 #define VIEW3D_H
 
-#include <GL/glu.h>
+#ifdef __APPLE__
+#include <GLUT/glut.h>
+#else
+#include <GL/glu.h> 
+#endif
+
 #include <QGLWidget>
 #include <QMouseEvent>
 #include "../libviso2/src/matrix.h"
